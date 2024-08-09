@@ -1,10 +1,7 @@
 import streamlit as st
-import requests
-import pandas as pd
 from scholar.lens_metadata import *
 from patents.lens_metadata import *
 from utils.llm import *
-import time
 from openai import OpenAI
 
 token = st.secrets["mytoken"]
