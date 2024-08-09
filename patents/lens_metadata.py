@@ -1,3 +1,6 @@
+import requests
+import pandas as pd
+
 def get_patent_data_with_query(start_date, end_date, query_string, token, class_cpc_prefix=None):
     url = 'https://api.lens.org/patent/search'
     include = ["lens_id", "date_published", "jurisdiction", "biblio", "doc_key", 
