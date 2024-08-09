@@ -33,6 +33,8 @@ with tab1:
                 results = get_publication_data_with_query(start_date, end_date, query, token)
                 st.write(f"Julkaisujen osumien määrä: {len(results['data'])}")
                 df = publication_table(results)
+                authors = author_table(results)
+                fs = fields_of_study_table(results)
                 st.dataframe(df)
                 st.dataframe(authors)
                 st.dataframe(fs)
