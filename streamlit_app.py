@@ -1,4 +1,5 @@
 import streamlit as st
+import requests
 import pandas as pd
 from scholar.lens_metadata import *
 from patents.lens_metadata import *
@@ -10,7 +11,7 @@ token = st.secrets["mytoken"]
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 st.title('🤖 👨‍🍳 ')
-tab1, tab2, tab3 = st.tabs(["Haku", "Ohjeet", "Tietoja"])
+tab1, tab2, tab3 = st.tabs(["Haku", "Ohjeita", "Tietoja"])
 
 with tab1:
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
@@ -25,7 +26,6 @@ with tab1:
         
         col1, col2, _ = st.columns([1,1,4])
         submit_button = col1.form_submit_button("Hae data")
-        llm_button = col2.form_submit_button("Auta!")
 
         if submit_button:
             token = token
@@ -34,25 +34,39 @@ with tab1:
                 st.write(f"Julkaisujen osumien määrä: {len(results['data'])}")
                 df = publication_table(results)
                 st.dataframe(df)
+                st.dataframe(authors)
+                st.dataframe(fs)
 
             elif search_type == 'Patentit':
                 results = get_patent_data_with_query(start_date, end_date, query, token, class_cpc_prefix)
                 st.write(f"Patenttien osumien määrä: {len(results)}")
+                patents= patents_table(results)
+                applicants = applicants_table(results)
+                c=cpc_classifications_table(results)
+                cpc_classes = make_cpc(c, json_file)
+                st.dataframe(patents)
+                st.dataframe(applicants)
+                st.dataframe(cpc_classes)
 
-        if llm_button:
-            if query:
-                task_description1, system_prompt1 = 'your_description_here', 'your_prompt_here'
-                response = get_LLM_response(query, task_description1, system_prompt1)
+    
+    st.subheader("Boolean-kyselyiden aputyökalu")  
+    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")  # Separate text box for help input
+    llm_button = st.button("Auta!")
+
+    if llm_button:
+            if help_query:  
+                response = get_LLM_response(help_query, task_description1, system_prompt1)  
                 if response:
                     st.write(response)
                 else:
                     st.error("Error: No response from LLM.")
             else:
-                st.write("Kerro kyselykentässä mitä haluat etsiä ja minä ehdotan.")
-
+                st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
+    
+    
 with tab2:
-    st.header("Ohjeet boolean-kyselyn muodostamiseen")
-    st.markdown("""
+st.header("Ohjeet boolean-kyselyn muodostamiseen")
+st.markdown("""
 - **AND**: Varmistaa, että molemmat termit löytyvät hakutuloksista. Tämä operaattori on hyödyllinen, kun haluat rajoittaa hakutuloksia siten, että ne sisältävät kaikki annetut hakutermit. Esimerkiksi kysely `omena JA appelsiini` palauttaa vain ne dokumentit, joissa esiintyvät sekä sana "omena" että sana "appelsiini".
 
 - **OR**: Jompikumpi termeistä (tai molemmat) löytyvät hakutuloksista. Tämä operaattori on hyödyllinen laajentamaan hakua, kun etsitään dokumentteja, jotka sisältävät ainakin toisen hakutermeistä. Esimerkki: `omena TAI appelsiini` palauttaa dokumentit, joissa on joko "omena", "appelsiini" tai molemmat.
