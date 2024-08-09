@@ -42,7 +42,7 @@ with tab1:
                 patents= patents_table(results)
                 applicants = applicants_table(results)
                 c=cpc_classifications_table(results)
-                cpc_classes = make_cpc(c, cpc_titles)
+                cpc_classes = make_cpc(c, cpc_titles.json)
                 st.dataframe(patents)
                 st.dataframe(applicants)
                 st.dataframe(cpc_classes)
