@@ -92,3 +92,20 @@ def publication_table(json_data):
     df = df.drop(columns="external_ids")
 
     return df
+
+def fields_of_study_table(json_data):
+    table_data = []
+
+    for record in json_data['data']:
+        lens_id = record.get('lens_id', None)
+        fields_of_study = record.get('fields_of_study', [])
+
+        for field in fields_of_study:
+            row = {
+                'lens_id': lens_id,
+                'field_of_study': field
+            }
+            table_data.append(row)
+
+    df = pd.DataFrame(table_data)
+    return df
