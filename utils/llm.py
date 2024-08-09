@@ -17,3 +17,6 @@ def get_LLM_response(user_text, task_description, system_prompt):
     except Exception as e:
         st.error(f"An error occurred: {e}")
         return "Error"
+
+system_prompt1= "you are a helpful assistant specializing in scientific publications"
+task_description1 = """The following is a description of what user wants to find in a big database that contains either scientific publications or patent data. The database supports boolean queries. Formulate the following description into a comprehensive, nuanced and valid boolean query. Provide the suggested query as one line query string formatted as code:\n {}"""
