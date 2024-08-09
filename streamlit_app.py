@@ -2,7 +2,6 @@ import streamlit as st
 from scholar.lens_metadata import *
 from patents.lens_metadata import *
 from utils.llm import *
-from openai import OpenAI
 
 token = st.secrets["mytoken"]
 
