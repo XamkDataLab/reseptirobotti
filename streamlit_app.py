@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from scholar.lens_metadata import *
 from patents.lens_metadata import *
-from utils.llm.py import *
+from utils.llm import *
 import time
 from openai import OpenAI
 
