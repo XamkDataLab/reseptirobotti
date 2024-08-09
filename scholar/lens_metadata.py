@@ -1,3 +1,6 @@
+import requests
+import pandas as pd
+
 def get_publication_data_with_query(start_date, end_date, query_string, token):
     url = 'https://api.lens.org/scholarly/search'
     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
