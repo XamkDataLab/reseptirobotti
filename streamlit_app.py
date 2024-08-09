@@ -5,7 +5,6 @@ from utils.llm import *
 from openai import OpenAI
 
 token = st.secrets["mytoken"]
-client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 st.title('🤖 👨‍🍳 ')
 tab1, tab2, tab3 = st.tabs(["Haku", "Ohjeita", "Tietoja"])
