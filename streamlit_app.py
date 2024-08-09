@@ -49,7 +49,7 @@ with tab1:
 
     
     st.subheader("Boolean-kyselyiden aputyökalu")  
-    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")  # Separate text box for help input
+    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
     llm_button = st.button("Auta!")
 
     if llm_button:
