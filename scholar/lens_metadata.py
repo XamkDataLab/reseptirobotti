@@ -112,3 +112,29 @@ def fields_of_study_table(json_data):
 
     df = pd.DataFrame(table_data)
     return df
+    
+def author_table(json_data):
+    
+    authors = []
+    
+    for data_entry in json_data['data']:
+        
+        lens_id = data_entry.get('lens_id', None)
+
+        for author_data in data_entry.get('authors', []):
+            
+            for affiliation in author_data.get('affiliations', []):
+                author = author_data.copy()
+                
+                author.pop('affiliations', None)           
+                author['affiliation_name'] = affiliation.get('name', None)
+                author['affiliation_name_original'] = affiliation.get('name_original', None)
+                author['country_code'] = affiliation.get('country_code', None)
+                author['lens_id'] = lens_id
+                authors.append(author)
+
+    
+    authors_df = pd.DataFrame(authors)
+    del authors_df['ids']
+
+    return authors_df
