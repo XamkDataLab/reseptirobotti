@@ -66,13 +66,13 @@ with tab1:
 with tab2:
     st.header("Ohjeet boolean-kyselyn muodostamiseen")
     st.markdown("""
-    - **AND**: Varmistaa, että molemmat termit löytyvät hakutuloksista. Tämä operaattori on hyödyllinen, kun haluat rajoittaa hakutuloksia siten, että ne sisältävät kaikki annetut hakutermit. Esimerkiksi kysely `omena JA appelsiini` palauttaa vain ne dokumentit, joissa esiintyvät sekä sana "omena" että sana "appelsiini".
+    - **AND**: Varmistaa, että molemmat termit löytyvät hakutuloksista. Tämä operaattori on hyödyllinen, kun haluat rajoittaa hakutuloksia siten, että ne sisältävät kaikki annetut hakutermit. Esimerkiksi kysely `omena AND appelsiini` palauttaa vain ne dokumentit, joissa esiintyvät sekä sana "omena" että sana "appelsiini".
     
-    - **OR**: Jompikumpi termeistä (tai molemmat) löytyvät hakutuloksista. Tämä operaattori on hyödyllinen laajentamaan hakua, kun etsitään dokumentteja, jotka sisältävät ainakin toisen hakutermeistä. Esimerkki: `omena TAI appelsiini` palauttaa dokumentit, joissa on joko "omena", "appelsiini" tai molemmat.
+    - **OR**: Jompikumpi termeistä (tai molemmat) löytyvät hakutuloksista. Tämä operaattori on hyödyllinen laajentamaan hakua, kun etsitään dokumentteja, jotka sisältävät ainakin toisen hakutermeistä. Esimerkki: `omena OR appelsiini` palauttaa dokumentit, joissa on joko "omena", "appelsiini" tai molemmat.
     
-    - **NOT**: Ensimmäinen termi sisältyy hakuun, ja toinen termi jätetään pois. Tämä operaattori auttaa poistamaan hakutuloksista ne dokumentit, jotka sisältävät ei-toivotun termin. Esimerkki: `omena EI appelsiini` palauttaa dokumentit, jotka sisältävät sanan "omena", mutta eivät sanaa "appelsiini".
+    - **NOT**: Ensimmäinen termi sisältyy hakuun, ja toinen termi jätetään pois. Tämä operaattori auttaa poistamaan hakutuloksista ne dokumentit, jotka sisältävät ei-toivotun termin. Esimerkki: `omena NOT appelsiini` palauttaa dokumentit, jotka sisältävät sanan "omena", mutta eivät sanaa "appelsiini".
     
-    - **Sulkeiden käyttö** (Parentheses): Käytä sulkeita ryhmittämään termejä ja hallitsemaan operaatioiden järjestystä, mikä on tärkeää monimutkaisten kyselyjen rakentamisessa. Esimerkki: `(omena TAI appelsiini) JA trooppinen` varmistaa, että hakutulokset sisältävät joko "omenan" tai "appelsiinin" ja lisäksi sanan "trooppinen".
+    - **Sulkeiden käyttö** (Parentheses): Käytä sulkeita ryhmittämään termejä ja hallitsemaan operaatioiden järjestystä, mikä on tärkeää monimutkaisten kyselyjen rakentamisessa. Esimerkki: `(omena OR appelsiini) AND trooppinen` varmistaa, että hakutulokset sisältävät joko "omenan" tai "appelsiinin" ja lisäksi sanan "trooppinen".
     
     - **Korvausmerkit** (Wildcards): Käytä `*` usean merkin korvaamiseen ja `?` yhden merkin korvaamiseen. Tämä on hyödyllistä, kun haet sanoja, jotka alkavat tai päättyvät tiettyyn kirjainsarjaan tai kun et ole varma oikeinkirjoituksesta. Esimerkki: `appl*` löytää sanat kuten apple, application, jne.
     
