@@ -3,10 +3,8 @@ from scholar.lens_metadata import *
 from patents.lens_metadata import *
 from utils.llm import *
 
-token = st.secrets["mytoken"]
-
 st.title('🤖 👨‍🍳 ')
-tab1, tab2, tab3 = st.tabs(["Haku", "Ohjeita", "Tietoja"])
+tab1, tab2, tab3, tab4 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja"])
 
 with tab1:
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
@@ -14,25 +12,21 @@ with tab1:
     with st.form("query_form"):
         start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-05-01")
         end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
-        query = st.text_area("Kirjoita kysely", '(cement OR concrete) AND (sustainable OR renewable)')
+        query = st.text_area("Kirjoita kysely")
         
         if search_type == 'Patentit':
             class_cpc_prefix = st.text_input("CPC luokitus tai sen alku (valinnainen)", "")
         
-        col1, col2, _ = st.columns([1,1,4])
         submit_button = col1.form_submit_button("Hae data")
 
         if submit_button:
             token = token
             if search_type == 'Julkaisut':
                 results = get_publication_data_with_query(start_date, end_date, query, token)
-                st.write(f"Julkaisujen osumien määrä: {len(results['data'])}")
-                df = publication_table(results)
-                authors = author_table(results)
-                fs = fields_of_study_table(results)
-                st.dataframe(df)
-                st.dataframe(authors)
-                st.dataframe(fs)
+                st.write(f"Julkaisu-osumien määrä: {len(results['data'])}")
+                st.session_state.df = publication_table(results)
+                st.session_state.fs = fields_of_study_table(results)
+                st.session_state.authors = author_table(results)   
 
             elif search_type == 'Patentit':
                 results = get_patent_data_with_query(start_date, end_date, query, token, class_cpc_prefix)
@@ -44,7 +38,29 @@ with tab1:
                 st.dataframe(patents)
                 st.dataframe(applicants)
                 st.dataframe(cpc_classes)
+                
+    if st.session_state.df is not None and st.session_state.fs is not None:
+        selected_fields = st.multiselect("Valitse tutkimusalueet", options=st.session_state.fs['field_of_study'].unique())
+        filtered_df = filter_dataframe(st.session_state.df, st.session_state.fs, selected_fields)
+        
+        sort_by = st.selectbox("Järjestä tulokset", options=["date_published", "references_count"])
+        filtered_df = filtered_df.sort_values(by=sort_by, ascending=False)
+    
+        for index, row in filtered_df.head(100).iterrows():
+            with st.container():
+                link_html = f"<a href='{row['link']}' target='_blank' class='custom-link'>{row['title']}</a>"
+                st.markdown(link_html, unsafe_allow_html=True)
+                col1, col2 = st.columns(2)
 
+                with col1:
+                    st.write(f"**Published on:** {row['date_published']}")
+                    st.write(f"**References Count:** {row['references_count']}")
+
+                with col2:
+                    st.write(f"**Publisher:** {row['source_publisher']}")
+                    st.write(row['publication_type'])
+
+                st.markdown("---")
     
     st.subheader("Boolean-kyselyiden aputyökalu")  
     help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
@@ -82,4 +98,7 @@ with tab2:
 
 with tab3:
     st.markdown("Made in XAMK")
+
+with tab4:
+    st.markdown("Haku-sivun `session_state` dataframeista tehtyjä kuvia")
 
