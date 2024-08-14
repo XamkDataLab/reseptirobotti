@@ -17,7 +17,7 @@ with tab1:
         if search_type == 'Patentit':
             class_cpc_prefix = st.text_input("CPC luokitus tai sen alku (valinnainen)", "")
         
-        submit_button = form_submit_button("Hae data")
+        submit_button = st.form_submit_button("Hae data")
 
         if submit_button:
             token = token
