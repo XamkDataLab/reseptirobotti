@@ -49,6 +49,7 @@ with tab1:
         for index, row in filtered_df.head(100).iterrows():
             with st.container():
                 link_html = f"<a href='{row['link']}' target='_blank' class='custom-link'>{row['title']}</a>"
+                st.markdown(css_style, unsafe_allow_html=True) 
                 st.markdown(link_html, unsafe_allow_html=True)
                 col1, col2 = st.columns(2)
 
