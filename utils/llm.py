@@ -45,3 +45,8 @@ a.custom-link {
 """
 
 st.markdown(css_style, unsafe_allow_html=True) 
+
+if 'df' not in st.session_state:
+    st.session_state.df = None
+if 'fs' not in st.session_state:
+    st.session_state.fs = None
