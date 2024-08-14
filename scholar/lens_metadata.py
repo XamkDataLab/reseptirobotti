@@ -1,6 +1,8 @@
 import requests
 import pandas as pd
 
+token = st.secrets["mytoken"]
+
 def get_publication_data_with_query(start_date, end_date, query_string, token):
     url = 'https://api.lens.org/scholarly/search'
     headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
@@ -67,7 +69,7 @@ def publication_table(json_data):
     data_list = json_data['data']
 
     columns = ["lens_id", "title", "publication_type", "year_published", 
-               "date_published_parts", "created", 
+               "date_published", "created", 
                "references_count", "start_page", "end_page", "author_count", 
                "abstract", "source", "source_urls", "external_ids", "is_open_access"]  
 
@@ -78,7 +80,7 @@ def publication_table(json_data):
     df["source_title"] = df["source"].apply(lambda x: x.get("title") if x else None)
     df["source_publisher"] = df["source"].apply(lambda x: x.get("publisher") if x else None)
     df = df.drop(columns="source")
-
+    df['date_published'] = pd.to_datetime(df['date_published']).dt.strftime('%Y-%m-%d')
     df["url"] = df["source_urls"].apply(lambda x: x[0]["url"] if x else None)
 
     df = df.drop(columns="source_urls")
