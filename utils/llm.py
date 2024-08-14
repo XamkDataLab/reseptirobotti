@@ -34,6 +34,12 @@ def filter_dataframe(df, fs, selected_fields):
         df = df[df['lens_id'].isin(lens_ids)]
     return df
 
+def initialize_session_state():
+    session_vars = ['df', 'fs', 'authors']
+    for var in session_vars:
+        if var not in st.session_state:
+            st.session_state[var] = None
+
 css_style = """
 <style>
 a.custom-link {
@@ -44,9 +50,3 @@ a.custom-link {
 </style>
 """
 
-st.markdown(css_style, unsafe_allow_html=True) 
-
-if 'df' not in st.session_state:
-    st.session_state.df = None
-if 'fs' not in st.session_state:
-    st.session_state.fs = None
