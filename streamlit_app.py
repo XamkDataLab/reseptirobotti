@@ -6,6 +6,13 @@ from utils.llm import *
 st.title('🤖 👨‍🍳 ')
 tab1, tab2, tab3, tab4 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja"])
 
+if 'df' not in st.session_state:
+    st.session_state.df = None
+if 'fs' not in st.session_state:
+    st.session_state.fs = None
+if 'authors' not in st.session_state:
+    st.session_state.authors = None
+
 with tab1:
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
 
