@@ -22,10 +22,6 @@ with tab1:
         if submit_button:
             token = token
             if search_type == 'Julkaisut':
-                if 'df' not in st.session_state:
-                    st.session_state.df = None
-                if 'fs' not in st.session_state:
-                    st.session_state.fs = None
                 results = get_publication_data_with_query(start_date, end_date, query, token)
                 st.write(f"Julkaisu-osumien määrä: {len(results['data'])}")
                 st.session_state.df = publication_table(results)
