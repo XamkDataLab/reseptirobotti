@@ -12,8 +12,8 @@ with tab1:
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
 
     with st.form("query_form"):
-        start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-05-01")
-        end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
+        start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-01-01")
+        end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-08-01")
         query = st.text_area("Kirjoita kysely")
         
         if search_type == 'Patentit':
