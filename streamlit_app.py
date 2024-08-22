@@ -61,7 +61,7 @@ with tab1:
 
                 with col2:
                     st.write(f"**Publisher:** {row['source_publisher']}")
-                    st.write(row['publication_type'])
+                    st.write(row['source_title'])
 
                 st.markdown("---")
     
