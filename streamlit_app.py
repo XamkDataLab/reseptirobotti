@@ -2,6 +2,11 @@ import streamlit as st
 from scholar.lens_metadata import *
 from patents.lens_metadata import *
 from utils.llm import *
+import utils.visualizations as vis
+import utils.text_prosessing as tp
+
+
+token = st.secrets["mytoken"]
 
 st.title('🤖 👨‍🍳 ')
 tab1, tab2, tab3, tab4 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja"])
@@ -12,14 +17,16 @@ with tab1:
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
 
     with st.form("query_form"):
-        start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-01-01")
-        end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-08-01")
+        start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-05-01")
+        end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
         query = st.text_area("Kirjoita kysely")
         
+       
         if search_type == 'Patentit':
             class_cpc_prefix = st.text_input("CPC luokitus tai sen alku (valinnainen)", "")
         
         submit_button = st.form_submit_button("Hae data")
+        st.session_state.search_type = search_type
 
         if submit_button:
             token = token
@@ -40,7 +47,11 @@ with tab1:
                 st.dataframe(patents)
                 st.dataframe(applicants)
                 st.dataframe(cpc_classes)
-                
+                st.session_state.patents = patents
+                st.session_state.applicants = applicants
+                st.session_state.cpc_classes = cpc_classes
+
+    
     if st.session_state.df is not None and st.session_state.fs is not None:
         selected_fields = st.multiselect("Valitse tutkimusalueet", options=st.session_state.fs['field_of_study'].unique())
         filtered_df = filter_dataframe(st.session_state.df, st.session_state.fs, selected_fields)
@@ -102,6 +113,41 @@ with tab2:
 with tab3:
     st.markdown("Made in XAMK")
 
-with tab4:
-    st.markdown("Haku-sivun `session_state` dataframeista tehtyjä kuvia")
 
+with tab4:
+    
+    if st.session_state.df is not None or st.session_state.patents is not None:
+        
+        if st.session_state.search_type == 'Julkaisut':
+            st.plotly_chart(vis.no_pub_by_date(st.session_state.df))
+            
+            top_n_pub = st.slider('Valitse top N julkaisijoille:', 
+                                  min_value=1, max_value=100, value=10)
+            
+            st.plotly_chart(vis.barchart_publishers(st.session_state.df,
+                                                    top_n_pub))
+            st.plotly_chart(vis.open_access(st.session_state.df))
+            st.plotly_chart(vis.fields_of_study_plot(st.session_state.fs))
+            st.plotly_chart(vis.pub_type(st.session_state.df))
+            
+            st.markdown(
+                "<h2 style='font-size: 16px; text-align: left; color: white;'>Eniten viittauksia</h2>",
+                unsafe_allow_html=True)
+            st.dataframe(vis.most_cited(st.session_state.df))
+        
+            
+        elif st.session_state.search_type == 'Patentit':
+            st.plotly_chart(vis.no_pub_by_date(st.session_state.patents))
+            
+            top_n_own = st.slider('Valitse top N omistajille:', 
+                                  min_value=1, max_value=100, value=10)
+            
+            st.plotly_chart(vis.owners_barchart(st.session_state.patents, top_n_own))
+            st.plotly_chart(vis.jurisdiction_barchart(st.session_state.patents))
+            st.plotly_chart(vis.pub_type(st.session_state.patents))
+            st.plotly_chart(vis.cpc_treemap(st.session_state.cpc_classes))
+    
+    else:
+        st.markdown("""
+        Hae ensin julkaisuja tai patentteja Haku-välilehdeltä.
+        """)

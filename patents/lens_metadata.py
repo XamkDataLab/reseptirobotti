@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import json
-import time
+import streamlit as st
 
 def get_patent_data_with_query(start_date, end_date, query_string, token, class_cpc_prefix=None):
     url = 'https://api.lens.org/patent/search'
@@ -73,6 +73,9 @@ def get_patent_data_with_query(start_date, end_date, query_string, token, class_
 
     patents = []
     scroll_id = None
+    
+    progress_bar = st.progress(0)
+    placeholder = st.empty()
 
     while True:
         if scroll_id is not None:
@@ -91,12 +94,20 @@ def get_patent_data_with_query(start_date, end_date, query_string, token, class_
         
         response = response.json()
         patents.extend(response['data'])
+        
+        placeholder.text(f"{len(patents)} / {response['total']} patenttia luettu...")
+        
+        progress_bar.progress(len(patents)/response['total'])
+        
         print(len(patents), "/", response['total'], "patents read...")
         
         if response.get('scroll_id'):
             scroll_id = response['scroll_id']
         if len(patents) >= response['total'] or len(response['data']) == 0:
             break
+            
+    placeholder.text("Patentit haettu!")
+    progress_bar.progress(1.0)
 
     data_out = {"total": len(patents), "data": patents}
     return data_out["data"]
