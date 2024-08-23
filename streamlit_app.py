@@ -64,7 +64,9 @@ with tab1:
                     st.write(row['source_title'])
 
                 st.markdown("---")
-    
+                
+    dfp = st.session_state.df
+    st.dataframe(dfp)
     st.subheader("Boolean-kyselyiden aputyökalu")  
     help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
     llm_button = st.button("Auta!")
