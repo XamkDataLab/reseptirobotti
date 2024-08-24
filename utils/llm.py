@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from openai import OpenAI
 
 client = OpenAI(api_key=st.secrets["openai_api_key"])
@@ -35,7 +34,7 @@ def filter_dataframe(df, fs, selected_fields):
     return df
 
 def initialize_session_state():
-    session_vars = ['df', 'fs', 'authors']
+    session_vars = ['df', 'fs', 'authors', 'patents', 'applicants', 'cpc_classes', 'search_type', 'pub_len', 'total_len']
     for var in session_vars:
         if var not in st.session_state:
             st.session_state[var] = None
@@ -49,4 +48,3 @@ a.custom-link {
 }
 </style>
 """
-

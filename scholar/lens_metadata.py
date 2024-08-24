@@ -1,9 +1,6 @@
 import requests
 import pandas as pd
 import streamlit as st
-import time
-
-token = st.secrets["mytoken"]
 
 def get_publication_data_with_query(start_date, end_date, query_string, token):
     url = 'https://api.lens.org/scholarly/search'
@@ -37,6 +34,9 @@ def get_publication_data_with_query(start_date, end_date, query_string, token):
 
     publications = []
     scroll_id = None
+    
+    progress_bar = st.progress(0)
+    placeholder = st.empty()
 
     while True:
         if scroll_id is not None:
@@ -56,6 +56,10 @@ def get_publication_data_with_query(start_date, end_date, query_string, token):
         response_data = response.json()
         publications += response_data['data']
         
+        placeholder.text(f"{len(publications)} / {response_data['total']} julkaisua luettu...")
+        
+        progress_bar.progress(len(publications)/response_data['total'])
+        
         print(f"{len(publications)} / {response_data['total']} publications read...")
 
         if response_data.get('scroll_id'):
@@ -63,6 +67,9 @@ def get_publication_data_with_query(start_date, end_date, query_string, token):
         
         if len(publications) >= response_data['total'] or len(response_data['data']) == 0:
             break
+    
+    placeholder.text("Julkaisut haettu!")
+    progress_bar.progress(1.0)
 
     data_out = {"total": len(publications), "data": publications}
     return data_out
@@ -71,9 +78,10 @@ def publication_table(json_data):
     data_list = json_data['data']
 
     columns = ["lens_id", "title", "publication_type", "year_published", 
-               "date_published", "created", 
+               "date_published_parts", "date_published", "created", 
                "references_count", "start_page", "end_page", "author_count", 
-               "abstract", "source", "source_urls", "external_ids", "is_open_access"]  
+               "abstract", "source", "source_urls", "external_ids", "is_open_access", 
+               "patent_citations_count", "scholarly_citations_count"]  
 
     data = [{key: item[key] if key in item else None for key in columns} for item in data_list]
 
@@ -82,7 +90,7 @@ def publication_table(json_data):
     df["source_title"] = df["source"].apply(lambda x: x.get("title") if x else None)
     df["source_publisher"] = df["source"].apply(lambda x: x.get("publisher") if x else None)
     df = df.drop(columns="source")
-    df['date_published'] = pd.to_datetime(df['date_published']).dt.strftime('%Y-%m-%d')
+
     df["url"] = df["source_urls"].apply(lambda x: x[0]["url"] if x else None)
 
     df = df.drop(columns="source_urls")
