@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import streamlit as st
+import time
 
 def get_publication_data_with_query(start_date, end_date, query_string, token):
     url = 'https://api.lens.org/scholarly/search'
