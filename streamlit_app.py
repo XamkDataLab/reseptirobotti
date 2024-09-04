@@ -2,40 +2,46 @@ import streamlit as st
 from scholar.lens_metadata import *
 from patents.lens_metadata import *
 from utils.llm import *
+from utils.lda import *
 import utils.visualizations as vis
-#import utils.text_prosessing as tp
 
-
-token = st.secrets["mytoken"]
-
+st.set_page_config(layout="wide")
 st.title('🤖 👨‍🍳 ')
-tab1, tab2, tab3, tab4 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja", "LDA"])
 
 initialize_session_state()
 
 with tab1:
+
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
 
     with st.form("query_form"):
-        start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-05-01")
-        end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
-        query = st.text_area("Kirjoita kysely")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-05-01")
+            end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
         
-       
-        if search_type == 'Patentit':
-            class_cpc_prefix = st.text_input("CPC luokitus tai sen alku (valinnainen)", "")
+        with col2:
+            query = st.text_area("Kirjoita kysely", '(drone* OR UAV* OR "unmanned aerial vehicle") AND (war OR military OR conflict)')
+        
+        with col3:
+            class_cpc_prefix = None
+            if search_type == 'Patentit':
+                class_cpc_prefix = st.text_input("CPC luokitus tai sen alku (valinnainen)", "")
         
         submit_button = st.form_submit_button("Hae data")
         st.session_state.search_type = search_type
 
         if submit_button:
-            token = token
+            st.session_state['data_loaded'] = False
             if search_type == 'Julkaisut':
                 results = get_publication_data_with_query(start_date, end_date, query, token)
                 st.write(f"Julkaisu-osumien määrä: {len(results['data'])}")
                 st.session_state.df = publication_table(results)
                 st.session_state.fs = fields_of_study_table(results)
-                st.session_state.authors = author_table(results)   
+                st.session_state.authors = author_table(results)
+                st.session_state['data_loaded'] = True   
 
             elif search_type == 'Patentit':
                 results = get_patent_data_with_query(start_date, end_date, query, token, class_cpc_prefix)
@@ -51,33 +57,14 @@ with tab1:
                 st.session_state.applicants = applicants
                 st.session_state.cpc_classes = cpc_classes
 
-    
-    if st.session_state.df is not None and st.session_state.fs is not None:
-        selected_fields = st.multiselect("Valitse tutkimusalueet", options=st.session_state.fs['field_of_study'].unique())
-        filtered_df = filter_dataframe(st.session_state.df, st.session_state.fs, selected_fields)
-        
-        sort_by = st.selectbox("Järjestä tulokset", options=["date_published", "references_count"])
-        filtered_df = filtered_df.sort_values(by=sort_by, ascending=False)
-    
-        for index, row in filtered_df.head(100).iterrows():
-            with st.container():
-                link_html = f"<a href='{row['link']}' target='_blank' class='custom-link'>{row['title']}</a>"
-                st.markdown(css_style, unsafe_allow_html=True) 
-                st.markdown(link_html, unsafe_allow_html=True)
-                col1, col2 = st.columns(2)
+        if st.session_state.get('data_loaded', False):
+            if search_type == 'Julkaisut':
+                st.markdown(css_style, unsafe_allow_html=True)
 
-                with col1:
-                    st.write(f"**Published on:** {row['date_published']}")
-                    st.write(f"**References Count:** {row['references_count']}")
-
-                with col2:
-                    st.write(f"**Publisher:** {row['source_publisher']}")
-                    st.write(row['source_title'])
-
-                st.markdown("---")
+                display_publication_results()
+        elif search_type == 'Patentit':
+            display_patent_results()
                 
-    dfp = st.session_state.df
-    st.dataframe(dfp)
     st.subheader("Boolean-kyselyiden aputyökalu")  
     help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
     llm_button = st.button("Auta!")
@@ -153,3 +140,35 @@ with tab4:
         st.markdown("""
         Hae ensin julkaisuja tai patentteja Haku-välilehdeltä.
         """)
+
+with tab5:
+    st.title('LDA Topic Modeler')
+    if st.session_state.df is not None: 
+    
+        df = st.session_state['df']
+        df['text'] = df['title'] + ' ' + df['abstract']
+        df = df.dropna(subset=['text'])
+        #st.dataframe(df)
+
+        num_topics = st.selectbox('Choose number of topics:', [i for i in range(1, 21)], index=4)
+        num_passes = st.slider('Select number of passes:', min_value=1, max_value=50, value=10)
+
+        build_model_clicked = st.button('Build Model')
+        if build_model_clicked or 'lda_model' in st.session_state:
+            if build_model_clicked:
+                lda_model = build_lda_model(df, num_topics, num_passes)
+                st.session_state['lda_model'] = lda_model
+                topics = lda_model.print_topics(num_words=20)
+                formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
+                st.session_state['formatted_topics'] = formatted_topics
+                st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
+                st.text(formatted_topics)
+
+            if 'formatted_topics' in st.session_state and st.button('Analyze topics'):
+                response = get_LLM_response(st.session_state['formatted_topics'], LDA_task_description, system_prompt1)
+                if response:
+                    st.write(response)
+                else:
+                    st.error("Error: No response from LLM.")
+    else:
+        st.write('Tee ensin haku luodaksesi aihemallin')
