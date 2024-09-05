@@ -4,6 +4,7 @@ from patents.lens_metadata import *
 from utils.llm import *
 from utils.lda import *
 import utils.visualizations as vis
+import re
 
 st.set_page_config(layout="wide")
 st.title('🤖 👨‍🍳 ')
@@ -149,6 +150,15 @@ with tab5:
         df['text'] = df['title'] + ' ' + df['abstract']
         df = df.dropna(subset=['text'])
         #st.dataframe(df)
+        term1 = 'google'
+        term2 = 'scholar'
+        def check_terms(text):
+            text_lower = text.lower()
+            return text_lower.count(term1)>=2 and text_lower.count(term2)>=2
+        df = df[~df['text'].apply(check_terms)]
+        def remove_xml_tags(text):
+            return re.sub(r'<.*?>', '', text)
+        df['text'] = df['text'].apply(remove_xml_tags)
 
         num_topics = st.selectbox('Choose number of topics:', [i for i in range(1, 21)], index=4)
         num_passes = st.slider('Select number of passes:', min_value=1, max_value=50, value=10)
