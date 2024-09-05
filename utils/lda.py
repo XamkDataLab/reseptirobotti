@@ -5,6 +5,10 @@ import nltk
 
 nltk.download('stopwords')
 
+custom_stopwords = ['title', 'abstract', 'abstracttext']
+
+stop_words = set(stopwords.words('english'))
+stop_words.update(custom_stopwords)
 
 def preprocess(text):
     result = []
