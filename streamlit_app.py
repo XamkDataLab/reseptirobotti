@@ -24,7 +24,7 @@ with tab1:
             end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
         
         with col2:
-            query = st.text_area("Kirjoita kysely", '(drone* OR UAV* OR "unmanned aerial vehicle") AND (war OR military OR conflict)')
+            query = st.text_area("Kirjoita kysely")
         
         with col3:
             class_cpc_prefix = None
