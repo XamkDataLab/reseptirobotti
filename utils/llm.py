@@ -79,7 +79,7 @@ def display_publication_results():
 
                 with col2:
                     st.write(f"**Publisher:** {row['source_publisher']}")
-                    st.write(row['publication_type'])
+                    st.write(row['source'])
 
                 st.markdown("---")
     else:
