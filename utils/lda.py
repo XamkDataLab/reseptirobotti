@@ -6,9 +6,7 @@ from nltk.stem import WordNetLemmatizer
 import nltk
 from collections import Counter
 import streamlit as st
-from joblib import Parallel, delayed
 import itertools
-
 
 if 'nltk_downloaded' not in st.session_state:
     nltk.download('wordnet')
@@ -62,7 +60,7 @@ def build_lda_model(dataframe, num_topics, num_passes):
 
 def dataset_statistics(documents):
     with st.spinner('Prosessoidaan dokumentteja...'):
-        processed_docs = Parallel(n_jobs=-1)(delayed(preprocess)(doc) for doc in documents)
+        processed_docs = [preprocess(doc) for doc in documents]
         
     num_docs = len(processed_docs)
     
