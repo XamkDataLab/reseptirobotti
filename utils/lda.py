@@ -10,9 +10,13 @@ from joblib import Parallel, delayed
 import itertools
 
 
-nltk.download('wordnet')
-nltk.download('stopwords')
-nltk.download('omw-1.4')
+@st.cache
+def download_nltk_data():
+    nltk.download('wordnet')
+    nltk.download('stopwords')
+    nltk.download('omw-1.4')
+
+download_nltk_data()
 
 stop_words = set(stopwords.words('english'))
 lemmatizer = WordNetLemmatizer()
