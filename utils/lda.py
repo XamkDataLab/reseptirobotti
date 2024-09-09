@@ -17,6 +17,10 @@ nltk.download('omw-1.4')
 stop_words = set(stopwords.words('english'))
 lemmatizer = WordNetLemmatizer()
 
+custom_stopwords = ['title', 'abstract', 'abstracttext']
+
+stop_words = set(stopwords.words('english'))
+stop_words.update(custom_stopwords)
 
 def preprocess(text):
     result = []

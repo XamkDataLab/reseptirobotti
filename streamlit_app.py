@@ -24,7 +24,7 @@ with tab1:
             end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
         
         with col2:
-            query = st.text_area("Kirjoita kysely", '(drone* OR UAV* OR "unmanned aerial vehicle") AND (war OR military OR conflict)')
+            query = st.text_area("Kirjoita kysely")
         
         with col3:
             class_cpc_prefix = None
@@ -154,6 +154,7 @@ with tab5:
         df = st.session_state['df']
         df['text'] = df['title'] + ' ' + df['abstract']
         df = df.dropna(subset=['text'])
+
         term1 = 'google'
         term2 = 'scholar'
         def check_terms(text):
@@ -163,6 +164,7 @@ with tab5:
         def remove_xml_tags(text):
             return re.sub(r'<.*?>', '', text)
         df['text'] = df['text'].apply(remove_xml_tags)
+
         
         if 'dataset_analysis_done' not in st.session_state:
             with st.spinner('Analyzing dataset, please wait...'):
@@ -176,6 +178,7 @@ with tab5:
         
         else:
             st.write('jee')
+
 
         num_topics = st.selectbox('Choose number of topics:', [i for i in range(1, 21)], index=4)
         num_passes = st.slider('Select number of passes:', min_value=1, max_value=50, value=10)
