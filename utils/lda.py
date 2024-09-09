@@ -14,8 +14,6 @@ if 'nltk_downloaded' not in st.session_state:
     nltk.download('omw-1.4')
     st.session_state['nltk_downloaded'] = True
 
-download_nltk_data()
-
 stop_words = set(stopwords.words('english'))
 lemmatizer = WordNetLemmatizer()
 
