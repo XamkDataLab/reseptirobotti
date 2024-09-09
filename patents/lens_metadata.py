@@ -2,15 +2,12 @@ import requests
 import pandas as pd
 import json
 import streamlit as st
+import time
 
 token = st.secrets["mytoken"]
 
-def get_patent_data_with_query(start_date, end_date, query_string, token, class_cpc_prefix=None):
-    url = 'https://api.lens.org/patent/search'
-    include = ["lens_id", "date_published", "jurisdiction", "biblio", "doc_key", 
-               "publication_type", "families", "biblio.publication_reference", 
-               "biblio.invention_title.text", "abstract.text", "claims.claims.claim_text"]
 
+def build_patent_query(query_string, start_date, end_date, class_cpc_prefix=None, other_filters=None):
     must_clauses = [
         {
             "query_string": {
@@ -28,36 +25,23 @@ def get_patent_data_with_query(start_date, end_date, query_string, token, class_
         }
     ]
 
+    
     if class_cpc_prefix:
-        must_clauses = [
-            {
-                "bool": {
-                    "should": [
-                        {
-                            "query_string": {
-                                "query": query_string,
-                                "fields": ["title", "abstract", "claim", "description", "full_text"]
-                            }
-                        },
-                        {
-                            "prefix": {
-                                "class_cpc.symbol": class_cpc_prefix
-                            }
-                        }
-                    ]
-                }
-            },
-            {
-                "range": {
-                    "date_published": {
-                        "gte": start_date,
-                        "lte": end_date
-                    }
-                }
+        must_clauses.append({
+            "prefix": {
+                "class_cpc.symbol": class_cpc_prefix
             }
-        ]
+        })
 
-    query_body = {
+    if other_filters:
+        for field, value in other_filters.items():
+            must_clauses.append({
+                "term": {
+                    field: value
+                }
+            })
+
+    return {
         "query": {
             "bool": {
                 "must": must_clauses
@@ -65,54 +49,61 @@ def get_patent_data_with_query(start_date, end_date, query_string, token, class_
         },
         "size": 500,
         "scroll": "1m",
-        "include": include
+        "include": [
+            "lens_id", "date_published", "jurisdiction", "biblio", "doc_key", 
+            "publication_type", "families", "biblio.publication_reference", 
+            "biblio.invention_title.text", "abstract.text", "claims.claims.claim_text"
+        ]
     }
 
+def get_patent_data_with_query(start_date, end_date, query_string, token, class_cpc_prefix=None, **other_filters):
+    url = 'https://api.lens.org/patent/search'
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
-
+    
+    query_body = build_patent_query(query_string, start_date, end_date, class_cpc_prefix, other_filters)
+    
     patents = []
     scroll_id = None
-    
     progress_bar = st.progress(0)
     placeholder = st.empty()
 
     while True:
-        if scroll_id is not None:
-            request_body = json.dumps({"scroll_id": scroll_id, "include": include}, ensure_ascii=False)
+        if scroll_id:
+            request_body = json.dumps({"scroll_id": scroll_id}, ensure_ascii=False)
         else:
             request_body = json.dumps(query_body, ensure_ascii=False)
         
         response = requests.post(url, data=request_body.encode('utf-8'), headers=headers)
+        
         if response.status_code == requests.codes.too_many_requests:
             print("TOO MANY REQUESTS, waiting...")
             time.sleep(8)
             continue
-        if response.status_code != requests.codes.ok:
-            print("ERROR:", response)
+        elif response.status_code != requests.codes.ok:
+            print(f"ERROR: {response.status_code} - {response.text}")
             break
         
-        response = response.json()
-        patents.extend(response['data'])
+        response_data = response.json()
+        patents.extend(response_data['data'])
         
-        placeholder.text(f"{len(patents)} / {response['total']} patenttia luettu...")
+        total_patents = response_data['total']
+        placeholder.text(f"{len(patents)} / {total_patents} patents read...")
+        progress_bar.progress(len(patents) / total_patents)
         
-        progress_bar.progress(len(patents)/response['total'])
+        print(len(patents), "/", total_patents, "patents read...")
         
-        print(len(patents), "/", response['total'], "patents read...")
-        
-        if response.get('scroll_id'):
-            scroll_id = response['scroll_id']
-        if len(patents) >= response['total'] or len(response['data']) == 0:
+        scroll_id = response_data.get('scroll_id')
+        if len(patents) >= total_patents or not response_data['data']:
             break
-            
-    placeholder.text("Patentit haettu!")
+
+    placeholder.text("Patents fetched successfully!")
     progress_bar.progress(1.0)
 
-    data_out = {"total": len(patents), "data": patents}
-    return data_out["data"]
+    return patents
+
 
 def patents_table(json_data):
 
