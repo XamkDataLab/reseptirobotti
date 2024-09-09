@@ -4,6 +4,7 @@ from patents.lens_metadata import *
 from utils.llm import *
 from utils.lda import *
 import utils.visualizations as vis
+import re
 
 st.set_page_config(layout="wide")
 st.title('🤖 👨‍🍳 ')
@@ -29,6 +30,8 @@ with tab1:
             class_cpc_prefix = None
             if search_type == 'Patentit':
                 class_cpc_prefix = st.text_input("CPC luokitus tai sen alku (valinnainen)", "")
+                jurisdiction = st.text_input("Jurisdiction (optional)", "")
+                applicant_residence = st.text_input('Applicant Residence')
         
         submit_button = st.form_submit_button("Hae data")
         st.session_state.search_type = search_type
@@ -44,25 +47,28 @@ with tab1:
                 st.session_state['data_loaded'] = True   
 
             elif search_type == 'Patentit':
-                results = get_patent_data_with_query(start_date, end_date, query, token, class_cpc_prefix)
+                other_filters = {}
+                if jurisdiction:
+                    other_filters['jurisdiction'] = jurisdiction
+                if applicant_residence:
+                    other_filters['applicant.residence'] = applicant_residence
+                
+                results = get_patent_data_with_query(start_date, end_date, query, token, class_cpc_prefix, **other_filters)
                 st.write(f"Patenttien osumien määrä: {len(results)}")
                 patents= patents_table(results)
                 applicants = applicants_table(results)
                 c=cpc_classifications_table(results)
                 cpc_classes = make_cpc(c, 'cpc_titles.json')
-                st.dataframe(patents)
-                st.dataframe(applicants)
-                st.dataframe(cpc_classes)
                 st.session_state.patents = patents
                 st.session_state.applicants = applicants
                 st.session_state.cpc_classes = cpc_classes
-
+           
         if st.session_state.get('data_loaded', False):
             if search_type == 'Julkaisut':
                 st.markdown(css_style, unsafe_allow_html=True)
-
                 display_publication_results()
-        elif search_type == 'Patentit':
+
+        elif st.session_state['patents'] is not None:
             display_patent_results()
                 
     st.subheader("Boolean-kyselyiden aputyökalu")  
@@ -71,7 +77,7 @@ with tab1:
 
     if llm_button:
             if help_query:  
-                response = get_LLM_response(help_query, task_description1, system_prompt1)  
+                response = get_LLM_response(help_query, query_task_description, system_prompt1)  
                 if response:
                     st.write(response)
                 else:
@@ -142,13 +148,34 @@ with tab4:
         """)
 
 with tab5:
-    st.title('LDA Topic Modeler')
+    st.title('LDA Aihemallinnin')
     if st.session_state.df is not None: 
     
         df = st.session_state['df']
         df['text'] = df['title'] + ' ' + df['abstract']
         df = df.dropna(subset=['text'])
-        #st.dataframe(df)
+        term1 = 'google'
+        term2 = 'scholar'
+        def check_terms(text):
+            text_lower = text.lower()
+            return text_lower.count(term1)>=2 and text_lower.count(term2)>=2
+        df = df[~df['text'].apply(check_terms)]
+        def remove_xml_tags(text):
+            return re.sub(r'<.*?>', '', text)
+        df['text'] = df['text'].apply(remove_xml_tags)
+        
+        if 'dataset_analysis_done' not in st.session_state:
+            with st.spinner('Analyzing dataset, please wait...'):
+                stats = analyze_dataset(df[['text']])
+                st.session_state['dataset_statistics'] = stats
+                st.session_state['dataset_analysis_done'] = True
+            st.success('Dataset analysis complete!')
+         
+        if 'dataset_statistics' in st.session_state and st.session_state['dataset_statistics'] is not None:
+            display_statistics(st.session_state['dataset_statistics'])
+        
+        else:
+            st.write('jee')
 
         num_topics = st.selectbox('Choose number of topics:', [i for i in range(1, 21)], index=4)
         num_passes = st.slider('Select number of passes:', min_value=1, max_value=50, value=10)
@@ -158,7 +185,7 @@ with tab5:
             if build_model_clicked:
                 lda_model = build_lda_model(df, num_topics, num_passes)
                 st.session_state['lda_model'] = lda_model
-                topics = lda_model.print_topics(num_words=20)
+                topics = lda_model.print_topics(num_words=50)
                 formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
                 st.session_state['formatted_topics'] = formatted_topics
                 st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
@@ -172,3 +199,4 @@ with tab5:
                     st.error("Error: No response from LLM.")
     else:
         st.write('Tee ensin haku luodaksesi aihemallin')
+
