@@ -10,11 +10,11 @@ from joblib import Parallel, delayed
 import itertools
 
 
-@st.cache
-def download_nltk_data():
+if 'nltk_downloaded' not in st.session_state:
     nltk.download('wordnet')
     nltk.download('stopwords')
     nltk.download('omw-1.4')
+    st.session_state['nltk_downloaded'] = True
 
 download_nltk_data()
 
