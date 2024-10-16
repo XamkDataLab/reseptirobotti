@@ -5,6 +5,8 @@ from utils.llm import *
 from utils.lda import *
 import utils.visualizations as vis
 import re
+import plotly.graph_objs as go
+import datetime
 
 st.set_page_config(layout="wide")
 st.title('🤖 👨‍🍳 ')
@@ -20,8 +22,8 @@ with tab1:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-05-01")
-            end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
+            start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-01-01")
+            end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-10-01")
         
         with col2:
             query = st.text_area("Kirjoita kysely")
@@ -54,15 +56,20 @@ with tab1:
                     other_filters['applicant.residence'] = applicant_residence
                 
                 results = get_patent_data_with_query(start_date, end_date, query, token, class_cpc_prefix, **other_filters)
-                st.write(f"Patenttien osumien määrä: {len(results)}")
-                patents= patents_table(results)
-                applicants = applicants_table(results)
-                c=cpc_classifications_table(results)
-                cpc_classes = make_cpc(c, 'cpc_titles.json')
-                st.session_state.patents = patents
-                st.session_state.applicants = applicants
-                st.session_state.cpc_classes = cpc_classes
+
+                if len(results) > 0:
+                    st.write(f"Patenttien osumien määrä: {len(results)}")
+                    patents= patents_table(results)
+                    applicants = applicants_table(results)
+                    c=cpc_classifications_table(results)
+                    cpc_classes = make_cpc(c, 'cpc_titles.json')
+                    st.session_state.patents = patents
+                    st.session_state.applicants = applicants
+                    st.session_state.cpc_classes = cpc_classes
            
+                else:
+                    print("No patent results found for the given query.")
+
         if st.session_state.get('data_loaded', False):
             if search_type == 'Julkaisut':
                 st.markdown(css_style, unsafe_allow_html=True)
@@ -84,6 +91,8 @@ with tab1:
                     st.error("Error: No response from LLM.")
             else:
                 st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
+
+    st.caption("Versio 0.21")
     
     
 with tab2:
@@ -114,33 +123,60 @@ with tab4:
     if st.session_state.df is not None or st.session_state.patents is not None:
         
         if st.session_state.search_type == 'Julkaisut':
-            st.plotly_chart(vis.no_pub_by_date(st.session_state.df))
+             # Ensure no_pub_by_date returns a valid figure
+            fig = vis.no_pub_by_date(st.session_state.df)
+            if isinstance(fig, go.Figure):  # Check if it's a valid Plotly figure
+                st.plotly_chart(fig)
             
             top_n_pub = st.slider('Valitse top N julkaisijoille:', 
                                   min_value=1, max_value=100, value=10)
             
-            st.plotly_chart(vis.barchart_publishers(st.session_state.df,
-                                                    top_n_pub))
-            st.plotly_chart(vis.open_access(st.session_state.df))
-            st.plotly_chart(vis.fields_of_study_plot(st.session_state.fs))
-            st.plotly_chart(vis.pub_type(st.session_state.df))
+            fig = vis.barchart_publishers(st.session_state.df, top_n_pub)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
+            
+            fig = vis.open_access(st.session_state.df)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
+
+            fig = vis.fields_of_study_plot(st.session_state.fs)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
+
+            fig = vis.pub_type(st.session_state.df)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
             
             st.markdown(
                 "<h2 style='font-size: 16px; text-align: left; color: white;'>Eniten viittauksia</h2>",
                 unsafe_allow_html=True)
             st.dataframe(vis.most_cited(st.session_state.df))
+            
         
             
         elif st.session_state.search_type == 'Patentit':
-            st.plotly_chart(vis.no_pub_by_date(st.session_state.patents))
+            fig = vis.no_pub_by_date(st.session_state.patents)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
             
             top_n_own = st.slider('Valitse top N omistajille:', 
                                   min_value=1, max_value=100, value=10)
             
-            st.plotly_chart(vis.owners_barchart(st.session_state.patents, top_n_own))
-            st.plotly_chart(vis.jurisdiction_barchart(st.session_state.patents))
-            st.plotly_chart(vis.pub_type(st.session_state.patents))
-            st.plotly_chart(vis.cpc_treemap(st.session_state.cpc_classes))
+            fig = vis.owners_barchart(st.session_state.patents, top_n_own)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
+
+            fig = vis.jurisdiction_barchart(st.session_state.patents)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
+
+            fig = vis.pub_type(st.session_state.patents)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
+
+            fig = vis.cpc_treemap(st.session_state.cpc_classes)
+            if isinstance(fig, go.Figure):
+                st.plotly_chart(fig)
     
     else:
         st.markdown("""
@@ -152,54 +188,58 @@ with tab5:
     if st.session_state.df is not None: 
     
         df = st.session_state['df']
-        df['text'] = df['title'] + ' ' + df['abstract']
-        df = df.dropna(subset=['text'])
 
-        term1 = 'google'
-        term2 = 'scholar'
-        def check_terms(text):
-            text_lower = text.lower()
-            return text_lower.count(term1)>=2 and text_lower.count(term2)>=2
-        df = df[~df['text'].apply(check_terms)]
-        def remove_xml_tags(text):
-            return re.sub(r'<.*?>', '', text)
-        df['text'] = df['text'].apply(remove_xml_tags)
+         # Ensure 'title' and 'abstract' columns exist in the dataframe before accessing them
+        if 'title' in df.columns and 'abstract' in df.columns:
 
-        
-        if 'dataset_analysis_done' not in st.session_state:
-            with st.spinner('Analyzing dataset, please wait...'):
-                stats = analyze_dataset(df[['text']])
-                st.session_state['dataset_statistics'] = stats
-                st.session_state['dataset_analysis_done'] = True
-            st.success('Dataset analysis complete!')
-         
-        if 'dataset_statistics' in st.session_state and st.session_state['dataset_statistics'] is not None:
-            display_statistics(st.session_state['dataset_statistics'])
-        
-        else:
-            st.write('jee')
+            df['text'] = df['title'] + ' ' + df['abstract']
+            df = df.dropna(subset=['text'])
+
+            term1 = 'google'
+            term2 = 'scholar'
+            def check_terms(text):
+                text_lower = text.lower()
+                return text_lower.count(term1)>=2 and text_lower.count(term2)>=2
+            df = df[~df['text'].apply(check_terms)]
+            def remove_xml_tags(text):
+                return re.sub(r'<.*?>', '', text)
+            df['text'] = df['text'].apply(remove_xml_tags)
+
+            
+            if 'dataset_analysis_done' not in st.session_state:
+                with st.spinner('Analyzing dataset, please wait...'):
+                    stats = analyze_dataset(df[['text']])
+                    st.session_state['dataset_statistics'] = stats
+                    st.session_state['dataset_analysis_done'] = True
+                st.success('Dataset analysis complete!')
+            
+            if 'dataset_statistics' in st.session_state and st.session_state['dataset_statistics'] is not None:
+                display_statistics(st.session_state['dataset_statistics'])
+            
+            else:
+                st.write('jee')
 
 
-        num_topics = st.selectbox('Choose number of topics:', [i for i in range(1, 21)], index=4)
-        num_passes = st.slider('Select number of passes:', min_value=1, max_value=50, value=10)
+            num_topics = st.selectbox('Choose number of topics:', [i for i in range(1, 21)], index=4)
+            num_passes = st.slider('Select number of passes:', min_value=1, max_value=50, value=10)
 
-        build_model_clicked = st.button('Build Model')
-        if build_model_clicked or 'lda_model' in st.session_state:
-            if build_model_clicked:
-                lda_model = build_lda_model(df, num_topics, num_passes)
-                st.session_state['lda_model'] = lda_model
-                topics = lda_model.print_topics(num_words=50)
-                formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
-                st.session_state['formatted_topics'] = formatted_topics
-                st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
-                st.text(formatted_topics)
+            build_model_clicked = st.button('Build Model')
+            if build_model_clicked or 'lda_model' in st.session_state:
+                if build_model_clicked:
+                    lda_model = build_lda_model(df, num_topics, num_passes)
+                    st.session_state['lda_model'] = lda_model
+                    topics = lda_model.print_topics(num_words=50)
+                    formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
+                    st.session_state['formatted_topics'] = formatted_topics
+                    st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
+                    st.text(formatted_topics)
 
-            if 'formatted_topics' in st.session_state and st.button('Analyze topics'):
-                response = get_LLM_response(st.session_state['formatted_topics'], LDA_task_description, system_prompt1)
-                if response:
-                    st.write(response)
-                else:
-                    st.error("Error: No response from LLM.")
+                if 'formatted_topics' in st.session_state and st.button('Analyze topics'):
+                    response = get_LLM_response(st.session_state['formatted_topics'], LDA_task_description, system_prompt1)
+                    if response:
+                        st.write(response)
+                    else:
+                        st.error("Error: No response from LLM.")
     else:
         st.write('Tee ensin haku luodaksesi aihemallin')
 
