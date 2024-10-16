@@ -66,6 +66,12 @@ def most_cited(df):
 
 def open_access(df):
     acc_count_df = df.groupby('is_open_access', dropna = False).size().reset_index(name = 'count')
+
+    acc_count_df ['is_open_access'] = acc_count_df['is_open_access'].replace({
+        True : 'Saatavilla',
+        None : 'Ei saatavilla'
+    })
+
     fig = px.pie(acc_count_df, values = 'count', names = 'is_open_access',
                  title = 'Avoin saatavuus')
     return fig

@@ -5,6 +5,7 @@ from utils.llm import *
 from utils.lda import *
 import utils.visualizations as vis
 import re
+import datetime 
 
 st.set_page_config(layout="wide")
 st.title('🤖 👨‍🍳 ')
@@ -13,21 +14,44 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualiso
 initialize_session_state()
 
 with tab1:
+    
+    st.subheader("Boolean-kyselyiden aputyökalu")  
+    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
+    llm_button = st.button("Auta!")
+
+    if llm_button:
+            if help_query:  
+                response = get_LLM_response(help_query, query_task_description, system_prompt1)  
+                if response:
+                    st.write(response)
+                else:
+                    st.error("Error: No response from LLM.")
+            else:
+                st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
 
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
+    
 
     with st.form("query_form"):
+
+        
         col1, col2, col3 = st.columns(3)
 
+        
+
         with col1:
-            start_date = st.text_input("Aloituspäivä (YYYY-MM-DD)", "2024-05-01")
-            end_date = st.text_input("Lopetuspäivä (YYYY-MM-DD)", "2024-05-02")
+            min_date = datetime.date(1970, 1, 1)
+            start_dateinput = st.date_input("Aloituspäivä (YYYY-MM-DD)", datetime.date(2024, 1, 1), format="YYYY-MM-DD", min_value = min_date)
+            start_date = start_dateinput.strftime("%Y-%m-%d")  
+            end_dateinput = st.date_input("Lopetuspäivä (YYYY-MM-DD)", datetime.date(2024, 10, 1),format="YYYY-MM-DD") 
+            end_date = end_dateinput.strftime("%Y-%m-%d")
+
         
         with col2:
             query = st.text_area("Kirjoita kysely")
         
         with col3:
-            class_cpc_prefix = None
+            class_cpc_prefix = None 
             if search_type == 'Patentit':
                 class_cpc_prefix = st.text_input("CPC luokitus tai sen alku (valinnainen)", "")
                 jurisdiction = st.text_input("Jurisdiction (optional)", "")
@@ -71,19 +95,7 @@ with tab1:
         elif st.session_state['patents'] is not None:
             display_patent_results()
                 
-    st.subheader("Boolean-kyselyiden aputyökalu")  
-    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
-    llm_button = st.button("Auta!")
-
-    if llm_button:
-            if help_query:  
-                response = get_LLM_response(help_query, query_task_description, system_prompt1)  
-                if response:
-                    st.write(response)
-                else:
-                    st.error("Error: No response from LLM.")
-            else:
-                st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
+    
     
     
 with tab2:
