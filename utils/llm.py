@@ -54,6 +54,11 @@ a.custom-link {
 def display_publication_results():
     df = st.session_state['df']
     fs = st.session_state['fs']
+
+    # Check if 'field_of_study' column exists
+    if 'field_of_study' not in fs.columns:
+        return  # Exit the function if the column doesn't exist
+    
     unique_fields_of_study = fs['field_of_study'].unique().tolist()
     selected_fields_of_study = st.multiselect('Select Fields of Study', unique_fields_of_study, key='select_fs')
 

@@ -87,22 +87,33 @@ def get_patent_data_with_query(start_date, end_date, query_string, token, class_
             break
         
         response_data = response.json()
+        total_patents = response_data.get('total', 0)
+
+        if total_patents == 0:
+            placeholder.text("Hakutuloksia ei löytynyt")
+            progress_bar.progress(0.0)
+            break
+
         patents.extend(response_data['data'])
-        
-        total_patents = response_data['total']
         placeholder.text(f"{len(patents)} / {total_patents} patents read...")
-        progress_bar.progress(len(patents) / total_patents)
-        
+
+        # Avoid ZeroDivisionError by checking total_patents
+        if total_patents > 0:
+            progress_bar.progress(len(patents) / total_patents)
+
         print(len(patents), "/", total_patents, "patents read...")
         
         scroll_id = response_data.get('scroll_id')
         if len(patents) >= total_patents or not response_data['data']:
             break
 
-    placeholder.text("Patents fetched successfully!")
-    progress_bar.progress(1.0)
+    # Only update to 100% if patents were fetched
+    if total_patents > 0:
+        placeholder.text("Patents fetched successfully!")
+        progress_bar.progress(1.0)
 
     return patents
+
 
 
 def patents_table(json_data):
@@ -254,13 +265,20 @@ def breakdown_cpc(code):
 def make_cpc(df, cpc_json_file):
     
     cpc = pd.read_json(cpc_json_file)
-    df[['Section', 'Class', 'Subclass', 'Group', 'Subgroup']] = df['cpc_classification'].apply(breakdown_cpc)
-    df['Group'] = df['Group'].apply(lambda x: x + "/00")
-    df.drop(['cpc_code_split', 'class'], axis=1, inplace=True)
-    df['Section Description'] = df['Section'].map(cpc.set_index('Code')['Description'])
-    df['Class Description'] = df['Class'].map(cpc.set_index('Code')['Description'])
-    df['Subclass Description'] = df['Subclass'].map(cpc.set_index('Code')['Description'])
-    df['Group Description'] = df['Group'].map(cpc.set_index('Code')['Description'])
-    df['Subgroup Description'] = df['Subgroup'].map(cpc.set_index('Code')['Description'])
 
-    return df
+    # Check if 'cpc_classification' column exists in the dataframe
+    if 'cpc_classification' in df.columns:
+
+        df[['Section', 'Class', 'Subclass', 'Group', 'Subgroup']] = df['cpc_classification'].apply(breakdown_cpc)
+        df['Group'] = df['Group'].apply(lambda x: x + "/00")
+        df.drop(['cpc_code_split', 'class'], axis=1, inplace=True)
+        df['Section Description'] = df['Section'].map(cpc.set_index('Code')['Description'])
+        df['Class Description'] = df['Class'].map(cpc.set_index('Code')['Description'])
+        df['Subclass Description'] = df['Subclass'].map(cpc.set_index('Code')['Description'])
+        df['Group Description'] = df['Group'].map(cpc.set_index('Code')['Description'])
+        df['Subgroup Description'] = df['Subgroup'].map(cpc.set_index('Code')['Description'])
+        return df
+    else:
+        # If 'cpc_classification' column is missing, return a message or handle the case accordingly
+        print("Error: 'cpc_classification' column not found in the dataframe.")
+        
