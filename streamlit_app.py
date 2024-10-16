@@ -102,20 +102,6 @@ with tab1:
             display_patent_results()
                 
 
-    st.subheader("Boolean-kyselyiden aputyökalu")  
-    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
-    llm_button = st.button("Auta!")
-
-    if llm_button:
-            if help_query:  
-                response = get_LLM_response(help_query, query_task_description, system_prompt1)  
-                if response:
-                    st.write(response)
-                else:
-                    st.error("Error: No response from LLM.")
-            else:
-                st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
-
     st.caption("Versio 0.22")
     
     
