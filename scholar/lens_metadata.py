@@ -57,27 +57,42 @@ def get_publication_data_with_query(start_date, end_date, query_string, token):
             break
 
         response_data = response.json()
+        total_publications = response_data.get('total', 0)
+
+        if total_publications == 0:
+            # No results, handle and exit early
+            placeholder.text("Hakutuloksia ei löytynyt")
+            progress_bar.progress(0.0)
+            break
+
         publications += response_data['data']
-        
-        placeholder.text(f"{len(publications)} / {response_data['total']} julkaisua luettu...")
-        
-        progress_bar.progress(len(publications)/response_data['total'])
-        
-        print(f"{len(publications)} / {response_data['total']} publications read...")
+        placeholder.text(f"{len(publications)} / {total_publications} julkaisua luettu...")
+
+        # Update progress only when total_publications > 0
+        progress_bar.progress(len(publications) / total_publications)
+        print(f"{len(publications)} / {total_publications} publications read...")
 
         if response_data.get('scroll_id'):
             scroll_id = response_data['scroll_id']
-        
-        if len(publications) >= response_data['total'] or len(response_data['data']) == 0:
+
+        if len(publications) >= total_publications or len(response_data['data']) == 0:
             break
-    
-    placeholder.text("Julkaisut haettu!")
-    progress_bar.progress(1.0)
+
+    # Only update progress to 100% if there were publications fetched
+    if total_publications > 0:
+        placeholder.text("Julkaisut haettu!")
+        progress_bar.progress(1.0)
 
     data_out = {"total": len(publications), "data": publications}
     return data_out
 
+
 def publication_table(json_data):
+
+    # Check if 'data' key exists and is non-empty
+    if 'data' not in json_data or not json_data['data']:
+        return pd.DataFrame()  # Return an empty DataFrame if no data
+    
     data_list = json_data['data']
 
     columns = ["lens_id", "title", "publication_type", "year_published", 
@@ -134,7 +149,7 @@ def author_table(json_data):
     
     authors = []
     
-    for data_entry in json_data['data']:
+    for data_entry in json_data.get('data',[]):
         
         lens_id = data_entry.get('lens_id', None)
 
@@ -152,6 +167,9 @@ def author_table(json_data):
 
     
     authors_df = pd.DataFrame(authors)
-    del authors_df['ids']
+    
+    # Safely remove the 'ids' column if it exists
+    if 'ids' in authors_df.columns:
+        del authors_df['ids']
 
     return authors_df

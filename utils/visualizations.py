@@ -9,6 +9,11 @@ import pandas as pd
 # timeseries for number of publications by year and month
 
 def no_pub_by_date(df):
+
+    # Check if 'date_published' column exists
+    if 'date_published' not in df.columns:
+        return "The 'date_published' column is missing from the data."
+    
     df['year_month'] = pd.to_datetime(df['date_published']).dt.to_period('M')
     date_count_df = df.groupby('year_month').size().reset_index(name = 'count')
     date_count_df['year_month'] = date_count_df['year_month'].dt.to_timestamp()
@@ -27,18 +32,22 @@ def no_pub_by_date(df):
 # publishers top n barchart 
 
 def barchart_publishers(df, n=10):
-   pub_count_df = df.groupby('source_publisher').size().reset_index(name = 'count') 
-   pub_count_df = pub_count_df.sort_values(by = 'count', ascending = False).head(n)
-   fig = px.bar(pub_count_df, y = "source_publisher", x ='count', 
+
+    if 'source_publisher' not in df.columns:
+        return "Column 'source_publisher' not found in the DataFrame"
+
+    pub_count_df = df.groupby('source_publisher').size().reset_index(name = 'count') 
+    pub_count_df = pub_count_df.sort_values(by = 'count', ascending = False).head(n)
+    fig = px.bar(pub_count_df, y = "source_publisher", x ='count', 
                  title = f'Top {n} julkaisijat', orientation = 'h',
                  text = 'count')
-   fig.update_layout(
-        xaxis_title = "Julkaisuja",
-        yaxis_title = 'Julkaisija',
-        )
+    fig.update_layout(
+            xaxis_title = "Julkaisuja",
+            yaxis_title = 'Julkaisija',
+            )
    
-   fig.update_traces(texttemplate='%{text}', textposition='outside')  
-   return fig
+    fig.update_traces(texttemplate='%{text}', textposition='outside')  
+    return fig
 
 # most scholarly citations barchart
 
@@ -58,6 +67,10 @@ def top_most_cited(df, n = 10):
 # most scholarly citations dataframe
 
 def most_cited(df):
+
+    if df.empty or 'scholarly_citations_count' not in df.columns:
+        return None
+    
     most_cited = df.sort_values(by = 'scholarly_citations_count', ascending = False)
     return most_cited[['title', 'scholarly_citations_count']]
 
@@ -65,6 +78,10 @@ def most_cited(df):
 # open access 
 
 def open_access(df):
+
+    if 'is_open_access' not in df.columns:
+        return "Column 'is_open_access' not found in the DataFrame"
+    
     acc_count_df = df.groupby('is_open_access', dropna = False).size().reset_index(name = 'count')
 
     acc_count_df ['is_open_access'] = acc_count_df['is_open_access'].replace({
@@ -79,6 +96,10 @@ def open_access(df):
 # top n fields of study 
 
 def fields_of_study_plot(df, n=10):
+   
+   if 'field_of_study' not in df.columns:
+        return "Column 'field_of_study' not found in the DataFrame"
+   
    fos_count_df = df.groupby('field_of_study').size().reset_index(name = 'count') 
    fos_count_df = fos_count_df.sort_values(by = 'count', ascending = False).head(n)
    fig = px.bar(fos_count_df, y = "field_of_study", x ='count', 
@@ -95,6 +116,10 @@ def fields_of_study_plot(df, n=10):
 # publication type (can be used for patents also)
 
 def pub_type(df):
+
+    if 'publication_type' not in df.columns:
+        return "Column 'publication_type' not found in the DataFrame"
+    
     type_count_df = df.groupby('publication_type').size().reset_index(name = 'count')
     type_count_df = type_count_df.sort_values(by = 'count', ascending = False)
     fig = px.bar(type_count_df, y = "publication_type", x ='count', 
