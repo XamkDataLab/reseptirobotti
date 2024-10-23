@@ -3,3 +3,4 @@ openai
 plotly
 gensim
 nltk
+openpyxl
