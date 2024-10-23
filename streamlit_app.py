@@ -35,12 +35,9 @@ with tab1:
     
 
     with st.form("query_form"):
-
-        
+ 
         col1, col2, col3 = st.columns(3)
-
-        
-
+  
         with col1:
             min_date = datetime.date(1970, 1, 1)
             start_dateinput = st.date_input("Aloituspäivä (YYYY-MM-DD)", datetime.date(2024, 1, 1), format="YYYY-MM-DD", min_value = min_date)
@@ -100,7 +97,31 @@ with tab1:
 
         elif st.session_state['patents'] is not None:
             display_patent_results()
-                
+    if st.session_state.get('data_loaded', False) and search_type == 'Julkaisut':
+        
+        publication_excel = to_excel(st.session_state.df)
+        fields_of_study_excel = to_excel(st.session_state.fs)
+        author_excel = to_excel(st.session_state.authors)
+
+        st.download_button(
+            label="Download Publications",
+            data=publication_excel,
+            file_name='publications.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        st.download_button(
+            label="Download Fields of Study",
+            data=fields_of_study_excel,
+            file_name='fields_of_study.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        st.download_button(
+            label="Download Authors",
+            data=author_excel,
+            file_name='authors.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+                    
 
     st.caption("Versio 0.22")
     

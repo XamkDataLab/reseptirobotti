@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+from io import BytesIO
 
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
@@ -99,5 +100,10 @@ def display_patent_results():
     st.dataframe(patents)
     st.dataframe(applicants)
     st.dataframe(cpc_classes)
+    
+def to_excel(df):
+    output = BytesIO()
+    df.to_excel(output, index=False, sheet_name='Sheet1')
+    return output.getvalue()
 
 
