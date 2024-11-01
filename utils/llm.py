@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+from io import BytesIO
 
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
@@ -70,7 +71,13 @@ def display_publication_results():
     df = st.session_state['df']
     fs = st.session_state['fs']
     authors = st.session_state['authors']
+    
+    # Check if 'field_of_study' column exists
+    if 'field_of_study' not in fs.columns:
+        return  # Exit the function if the column doesn't exist
+    
     unique_fields_of_study = sorted(fs['field_of_study'].unique().tolist())
+
     selected_fields_of_study = st.multiselect('Select Fields of Study', unique_fields_of_study, key='select_fs')
 
     if selected_fields_of_study:
@@ -151,5 +158,10 @@ def display_patent_results():
     st.dataframe(patents)
     st.dataframe(applicants)
     st.dataframe(cpc_classes)
+    
+def to_excel(df):
+    output = BytesIO()
+    df.to_excel(output, index=False, sheet_name='Sheet1')
+    return output.getvalue()
 
 
