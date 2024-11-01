@@ -7,6 +7,9 @@ import nltk
 from collections import Counter
 import streamlit as st
 import itertools
+import pyLDAvis
+import pyLDAvis.gensim_models as gensimvis
+import utils.visualizations as vis
 
 if 'nltk_downloaded' not in st.session_state:
     nltk.download('wordnet')
@@ -53,8 +56,12 @@ def build_lda_model(dataframe, num_topics, num_passes):
     coherence_score = coherence_model_lda.get_coherence()
     st.write(f"Coherence Score: {coherence_score}")
 
-    return lda_model
-    
+    return lda_model, corpus, dictionary
+
+def display_pyLDAvis(lda_model, corpus, dictionary):
+    lda_vis = gensimvis.prepare(lda_model, corpus, dictionary)
+    html_string = pyLDAvis.prepared_data_to_html(lda_vis)
+    st.components.v1.html(html_string, width=1200, height=800)
 
 def dataset_statistics(documents):
     with st.spinner('Prosessoidaan dokumentteja...'):
@@ -103,6 +110,7 @@ def display_statistics(stats):
         st.write(f"Keskimääräinen dokumentin pituus: {stats['avg_doc_length']}")
         st.write(f"Dokumenttien pituuden jakauma (min, max, avg): {min(stats['doc_lengths'])}, {max(stats['doc_lengths'])}, {stats['avg_doc_length']}")
         st.write(f"Top 50 yleisimmät sanat: {stats['top_50_common_words']}")
+        st.plotly_chart(vis.word_freq_barplot(stats['top_50_common_words']))
         #st.write(f"Top 10 harvinaisimmat sanat (esiintyy vain kerran): {stats['least_common_words']}")
         st.write(f"Stopwordejä poistettu: {stats['stopwords_removed']}")
         

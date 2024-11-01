@@ -16,6 +16,11 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualiso
 initialize_session_state()
 
 with tab1:
+
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 1
+    if 'results_per_page' not in st.session_state:
+        st.session_state.results_per_page = 20
     
     st.subheader("Boolean-kyselyiden aputyökalu")  
     help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
@@ -30,6 +35,7 @@ with tab1:
                     st.error("Error: No response from LLM.")
             else:
                 st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
+    
 
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
     
@@ -90,13 +96,16 @@ with tab1:
                 else:
                     print("No patent results found for the given query.")
 
-        if st.session_state.get('data_loaded', False):
-            if search_type == 'Julkaisut':
-                st.markdown(css_style, unsafe_allow_html=True)
-                display_publication_results()
-
+           
+           
+    if st.session_state.get('data_loaded', False):
+        if search_type == 'Julkaisut':
+            st.markdown(css_style, unsafe_allow_html=True)
+            display_publication_results()
+        
         elif st.session_state['patents'] is not None:
             display_patent_results()
+
     if st.session_state.get('data_loaded', False) and search_type == 'Julkaisut':
         
         publication_excel = to_excel(st.session_state.df)
@@ -154,6 +163,7 @@ with tab4:
     if st.session_state.df is not None or st.session_state.patents is not None:
         
         if st.session_state.search_type == 'Julkaisut':
+
              # Ensure no_pub_by_date returns a valid figure
             fig = vis.no_pub_by_date(st.session_state.df)
             if isinstance(fig, go.Figure):  # Check if it's a valid Plotly figure
@@ -181,6 +191,7 @@ with tab4:
             st.markdown(
                 "<h2 style='font-size: 16px; text-align: left; color: white;'>Eniten viittauksia</h2>",
                 unsafe_allow_html=True)
+
             st.dataframe(vis.most_cited(st.session_state.df))
             
         
@@ -216,12 +227,18 @@ with tab4:
 
 with tab5:
     st.title('LDA Aihemallinnin')
-    if st.session_state.df is not None: 
+    if st.session_state.df is not None:
+        
+        refresh = st.button("Aja uudelleen")
+        
+        if refresh and 'dataset_analysis_done' in st.session_state:
+            st.session_state.dataset_analysis_done = False
     
         df = st.session_state['df']
 
          # Ensure 'title' and 'abstract' columns exist in the dataframe before accessing them
         if 'title' in df.columns and 'abstract' in df.columns:
+
 
             df['text'] = df['title'] + ' ' + df['abstract']
             df = df.dropna(subset=['text'])
@@ -237,7 +254,7 @@ with tab5:
             df['text'] = df['text'].apply(remove_xml_tags)
 
             
-            if 'dataset_analysis_done' not in st.session_state:
+            if 'dataset_analysis_done' not in st.session_state or st.session_state.get('dataset_analysis_done') == False:
                 with st.spinner('Analyzing dataset, please wait...'):
                     stats = analyze_dataset(df[['text']])
                     st.session_state['dataset_statistics'] = stats
@@ -254,16 +271,29 @@ with tab5:
             num_topics = st.selectbox('Choose number of topics:', [i for i in range(1, 21)], index=4)
             num_passes = st.slider('Select number of passes:', min_value=1, max_value=50, value=10)
 
-            build_model_clicked = st.button('Build Model')
-            if build_model_clicked or 'lda_model' in st.session_state:
-                if build_model_clicked:
-                    lda_model = build_lda_model(df, num_topics, num_passes)
-                    st.session_state['lda_model'] = lda_model
-                    topics = lda_model.print_topics(num_words=50)
-                    formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
-                    st.session_state['formatted_topics'] = formatted_topics
-                    st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
-                    st.text(formatted_topics)
+        build_model_clicked = st.button('Build Model')
+        if build_model_clicked or 'lda_model' in st.session_state:
+            if build_model_clicked:
+                lda_model, corpus, dictionary = build_lda_model(df, num_topics, num_passes)
+                st.session_state['lda_model'] = lda_model
+                st.session_state.corpus = corpus
+                st.session_state.dictionary = dictionary
+                
+                topics = lda_model.print_topics(num_words=50)
+                formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
+                st.session_state['formatted_topics'] = formatted_topics
+                st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
+
+                
+            if 'lda_model' in st.session_state and 'corpus' in st.session_state and 'dictionary' in st.session_state:
+                st.subheader("pyLDAvis Visualization")
+                display_pyLDAvis(st.session_state['lda_model'], st.session_state['corpus'], st.session_state['dictionary'])
+               
+
+            if 'formatted_topics' in st.session_state:
+                st.subheader("LDA Model Topics")
+                st.text(st.session_state.formatted_topics)
+                
 
                 if 'formatted_topics' in st.session_state and st.button('Analyze topics'):
                     response = get_LLM_response(st.session_state['formatted_topics'], LDA_task_description, system_prompt1)
@@ -271,6 +301,7 @@ with tab5:
                         st.write(response)
                     else:
                         st.error("Error: No response from LLM.")
+
     else:
         st.write('Tee ensin haku luodaksesi aihemallin')
 
