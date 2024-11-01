@@ -14,6 +14,26 @@ initialize_session_state()
 
 with tab1:
 
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 1
+    if 'results_per_page' not in st.session_state:
+        st.session_state.results_per_page = 20
+    
+    st.subheader("Boolean-kyselyiden aputyökalu")  
+    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
+    llm_button = st.button("Auta!")
+
+    if llm_button:
+            if help_query:  
+                response = get_LLM_response(help_query, query_task_description, system_prompt1)  
+                if response:
+                    st.write(response)
+                else:
+                    st.error("Error: No response from LLM.")
+            else:
+                st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
+    
+
     search_type = st.radio("Valitse hakukohde", ('Julkaisut', 'Patentit'))
 
     with st.form("query_form"):
@@ -62,29 +82,19 @@ with tab1:
                 st.session_state.patents = patents
                 st.session_state.applicants = applicants
                 st.session_state.cpc_classes = cpc_classes
-           
-        if st.session_state.get('data_loaded', False):
-            if search_type == 'Julkaisut':
-                st.markdown(css_style, unsafe_allow_html=True)
-                display_publication_results()
+                
 
+           
+           
+    if st.session_state.get('data_loaded', False):
+        if search_type == 'Julkaisut':
+            st.markdown(css_style, unsafe_allow_html=True)
+            display_publication_results()
+        
         elif st.session_state['patents'] is not None:
             display_patent_results()
                 
-    st.subheader("Boolean-kyselyiden aputyökalu")  
-    help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
-    llm_button = st.button("Auta!")
 
-    if llm_button:
-            if help_query:  
-                response = get_LLM_response(help_query, query_task_description, system_prompt1)  
-                if response:
-                    st.write(response)
-                else:
-                    st.error("Error: No response from LLM.")
-            else:
-                st.write("Kerro tukikyselykentässä mitä haluat etsiä ja minä ehdotan.")
-    
     
 with tab2:
     st.header("Ohjeet boolean-kyselyn muodostamiseen")
@@ -114,21 +124,30 @@ with tab4:
     if st.session_state.df is not None or st.session_state.patents is not None:
         
         if st.session_state.search_type == 'Julkaisut':
-            st.plotly_chart(vis.no_pub_by_date(st.session_state.df))
+            
+            if st.session_state.get('use_filtered', True) and 'filtered_data' in st.session_state:
+                df = st.session_state.filtered_publications_df
+                fs = st.session_state.filtered_fs
+                
+            else:  
+                df = st.session_state.df
+                fs = st.session_state.fs
+            
+            st.plotly_chart(vis.no_pub_by_date(df))
             
             top_n_pub = st.slider('Valitse top N julkaisijoille:', 
                                   min_value=1, max_value=100, value=10)
             
-            st.plotly_chart(vis.barchart_publishers(st.session_state.df,
+            st.plotly_chart(vis.barchart_publishers(df,
                                                     top_n_pub))
-            st.plotly_chart(vis.open_access(st.session_state.df))
-            st.plotly_chart(vis.fields_of_study_plot(st.session_state.fs))
-            st.plotly_chart(vis.pub_type(st.session_state.df))
+            st.plotly_chart(vis.open_access(df))
+            st.plotly_chart(vis.fields_of_study_plot(fs))
+            st.plotly_chart(vis.pub_type(df))
             
             st.markdown(
                 "<h2 style='font-size: 16px; text-align: left; color: white;'>Eniten viittauksia</h2>",
                 unsafe_allow_html=True)
-            st.dataframe(vis.most_cited(st.session_state.df))
+            st.dataframe(vis.most_cited(df))
         
             
         elif st.session_state.search_type == 'Patentit':
@@ -149,7 +168,12 @@ with tab4:
 
 with tab5:
     st.title('LDA Aihemallinnin')
-    if st.session_state.df is not None: 
+    if st.session_state.df is not None:
+        
+        refresh = st.button("Aja uudelleen")
+        
+        if refresh and 'dataset_analysis_done' in st.session_state:
+            st.session_state.dataset_analysis_done = False
     
         df = st.session_state['df']
         df['text'] = df['title'] + ' ' + df['abstract']
@@ -166,7 +190,7 @@ with tab5:
         df['text'] = df['text'].apply(remove_xml_tags)
 
         
-        if 'dataset_analysis_done' not in st.session_state:
+        if 'dataset_analysis_done' not in st.session_state or st.session_state.get('data_analysis_done') == False:
             with st.spinner('Analyzing dataset, please wait...'):
                 stats = analyze_dataset(df[['text']])
                 st.session_state['dataset_statistics'] = stats
@@ -186,20 +210,31 @@ with tab5:
         build_model_clicked = st.button('Build Model')
         if build_model_clicked or 'lda_model' in st.session_state:
             if build_model_clicked:
-                lda_model = build_lda_model(df, num_topics, num_passes)
+                lda_model, corpus, dictionary = build_lda_model(df, num_topics, num_passes)
                 st.session_state['lda_model'] = lda_model
+                st.session_state.corpus = corpus
+                st.session_state.dictionary = dictionary
+                
                 topics = lda_model.print_topics(num_words=50)
                 formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
                 st.session_state['formatted_topics'] = formatted_topics
-                st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
-                st.text(formatted_topics)
 
-            if 'formatted_topics' in st.session_state and st.button('Analyze topics'):
-                response = get_LLM_response(st.session_state['formatted_topics'], LDA_task_description, system_prompt1)
-                if response:
-                    st.write(response)
-                else:
-                    st.error("Error: No response from LLM.")
+                
+            if 'lda_model' in st.session_state and 'corpus' in st.session_state and 'dictionary' in st.session_state:
+                st.subheader("pyLDAvis Visualization")
+                display_pyLDAvis(st.session_state['lda_model'], st.session_state['corpus'], st.session_state['dictionary'])
+               
+
+            if 'formatted_topics' in st.session_state:
+                st.subheader("LDA Model Topics")
+                st.text(st.session_state.formatted_topics)
+                
+                if st.button('Analyze topics'):
+                    response = get_LLM_response(st.session_state['formatted_topics'], LDA_task_description, system_prompt1)
+                    if response:
+                        st.write(response)
+                    else:
+                        st.error("Error: No response from LLM.")                       
     else:
         st.write('Tee ensin haku luodaksesi aihemallin')
 

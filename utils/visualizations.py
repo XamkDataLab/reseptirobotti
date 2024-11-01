@@ -4,6 +4,7 @@ import plotly.express as px
 import pandas as pd
 
 
+
 # articles
 
 # timeseries for number of publications by year and month
@@ -114,6 +115,17 @@ def word_frequency_barplot(df, n=50):
         )
    
     fig.update_traces(texttemplate='%{text}', textposition='outside')  
+    return fig
+
+def word_freq_barplot(counts):
+    words, counts = zip(*counts)
+    fig = px.bar(x = words, y = counts,
+                 title = "Top 50 yleisintä sanaa")
+    fig.update_layout(
+        xaxis_title = 'Lukumäärä',
+        yaxis_title = 'Sana',
+        )
+    
     return fig
 
 

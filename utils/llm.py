@@ -25,7 +25,8 @@ def get_LLM_response(user_text, task_description, system_prompt):
 
 system_prompt1= "you are a helpful assistant specializing in scientific publications"
 query_task_description = """The following is a description of what user wants to find in a big database that contains either scientific publications or patent data. The database supports boolean queries. Formulate the following description into a comprehensive, nuanced and valid boolean query. Provide the suggested query as one line query string formatted as code:\n {}"""
-LDA_task_description = "The following is a printout of LDA topic model topics made with gensim library. Top 20 keywords per topic are listed. Go through each topic and then provide a fititng name for each topic and textual description for each topic: \n {}"
+LDA_task_description = "The following is a printout of LDA topic model topics made with gensim library. Top 20 keywords and their probabilities per topic are listed. Go through each topic and then provide a fitting name for each topic and textual description for each topic: \n {}"
+LDA_analysis_task = "The following is a printout of LDA topic model topics made with gensim library. Top 20 keywords and their probabilities per topic are listed. Go through the probabilities of words and see if there seems to be too few or too many topics. Give your own analysis of this: \n {}"
 
 
 def filter_dataframe(df, fs, selected_fields):
@@ -51,23 +52,77 @@ a.custom-link {
 </style>
 """
 
+def get_page_results(page_index, results_per_page ,df):
+    start_index = page_index * results_per_page
+    end_index = start_index + results_per_page
+    return df.iloc[start_index:end_index]
+
+def update_page():
+    st.session_state.current_page = st.session_state.page_dropdown
+    
+def update_results_per_page():
+    st.session_state.current_page = 1  # Reset to first page
+    st.session_state.results_per_page = st.session_state.results_dropdown
+
+
 def display_publication_results():
+    
     df = st.session_state['df']
     fs = st.session_state['fs']
-    unique_fields_of_study = fs['field_of_study'].unique().tolist()
+    authors = st.session_state['authors']
+    unique_fields_of_study = sorted(fs['field_of_study'].unique().tolist())
     selected_fields_of_study = st.multiselect('Select Fields of Study', unique_fields_of_study, key='select_fs')
 
     if selected_fields_of_study:
         relevant_lens_ids = fs[fs['field_of_study'].isin(selected_fields_of_study)]['lens_id'].tolist()
         filtered_publications_df = df[df['lens_id'].isin(relevant_lens_ids)]
+        st.session_state.current_page = 1
+            
     else:
         filtered_publications_df = df
         
     total_results = len(filtered_publications_df)
     st.write(f"Total results: {total_results}")
+    
 
     if not filtered_publications_df.empty:
-        for index, row in filtered_publications_df.head(200).iterrows():
+        total_pages = (len(filtered_publications_df) - 1) // st.session_state.results_per_page +1
+        
+        col1, col2 = st.columns([1, 7])
+        
+        with col1:
+            st.selectbox(
+                "Results per page", options=[5, 10, 20, 50, 100], index=1,  # Default to 10 results per page
+                key="results_dropdown", on_change=update_results_per_page
+                )
+        
+        col1, col2, col3, col4, spacer, col5 = st.columns([3, 1, 1, 1, 3, 1])
+        with col1:
+            if st.button("Previous") and st.session_state.current_page > 1:
+                st.session_state.current_page -= 1
+            
+        with col2:
+            st.write("Page")
+            
+        with col3:
+            st.session_state.current_page = st.selectbox(
+                "", options=list(range(1, total_pages + 1)), index=st.session_state.current_page - 1, 
+                key="page_dropdown", label_visibility = "collapsed",
+                on_change = update_page
+            )
+            
+        with col4:
+            st.write(f"of {total_pages}")
+        
+        with col5: 
+            if st.button("Next") and st.session_state.current_page < total_pages:
+                st.session_state.current_page += 1
+            
+        current_page_df = get_page_results(st.session_state.current_page - 1, st.session_state.results_per_page, filtered_publications_df)
+        
+        
+        
+        for index, row in current_page_df.iterrows():
             with st.container():
                 link_html = f"<a href='{row['link']}' target='_blank' class='custom-link'>{row['title']}</a>"
                 st.markdown(link_html, unsafe_allow_html=True)
@@ -82,6 +137,8 @@ def display_publication_results():
                     st.write(row['source_title'])
 
                 st.markdown("---")
+        
+     
     else:
         st.write("No publications found for the selected fields of study.")
 
