@@ -25,7 +25,7 @@ def get_LLM_response(user_text, task_description, system_prompt):
         return "Error"
 
 system_prompt1= "you are a helpful assistant specializing in scientific publications"
-query_task_description = """The following is a description of what user wants to find in a big database that contains either scientific publications or patent data. The database supports boolean queries. Formulate the following description into a comprehensive, nuanced and valid boolean query. Provide the suggested query as one line query string formatted as code:\n {}"""
+query_task_description = """The following is a description of what user wants to find in a big database that contains either scientific publications or patent data. The database supports boolean queries. Some of these words should be included in the query: materials, composition, recipe, properties. Formulate the following description into a comprehensive, nuanced and valid boolean query. Provide the suggested query as one line query string formatted as code:\n {}"""
 LDA_task_description = "The following is a printout of LDA topic model topics made with gensim library. Top 20 keywords and their probabilities per topic are listed. Go through each topic and then provide a fitting name for each topic and textual description for each topic: \n {}"
 LDA_analysis_task = "The following is a printout of LDA topic model topics made with gensim library. Top 20 keywords and their probabilities per topic are listed. Go through the probabilities of words and see if there seems to be too few or too many topics. Give your own analysis of this: \n {}"
 
