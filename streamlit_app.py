@@ -325,7 +325,7 @@ with tab5:
                             st.session_state['llm_response'] = None
                             
                         if st.session_state['llm_response'] is None:
-                            response = get_LLM_response(st.session_state['reordered_topics'], LDA_task_description, system_prompt1)
+                            response = get_LLM_response(st.session_state['reordered_topics'], LDA_task_description, system_prompt2)
                             if response:
                                 st.session_state['llm_response'] = response
                             else:
