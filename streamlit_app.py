@@ -26,10 +26,15 @@ with tab1:
     help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
     llm_button = st.button("Auta!")
 
+
+    if 'query' not in st.session_state:
+        st.session_state.query = ""
+
     if llm_button:
             if help_query:  
                 response = get_LLM_response(help_query, query_task_description, system_prompt1)  
                 if response:
+                    st.session_state.query = response
                     st.write(response)
                 else:
                     st.error("Error: No response from LLM.")
@@ -52,7 +57,7 @@ with tab1:
             end_date = end_dateinput.strftime("%Y-%m-%d")
       
         with col2:
-            query = st.text_area("Kirjoita kysely")
+            query = st.text_area("Kirjoita kysely", value = st.session_state.query)
         
         with col3:
             class_cpc_prefix = None 
