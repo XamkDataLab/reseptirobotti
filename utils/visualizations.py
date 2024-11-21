@@ -2,8 +2,11 @@
 
 import plotly.express as px
 import pandas as pd
-
-
+import random
+import plotly.graph_objects as go
+import streamlit as st
+from wordcloud import WordCloud
+from io import BytesIO
 
 # articles
 
@@ -218,4 +221,44 @@ def cpc_treemap(df):
     fig.update_traces(root_color="lightgrey")
     return fig
 
+def generate_coordinates(num_words):
+    return [(random.uniform(-1, 1), random.uniform(-1, 1)) for _ in range(num_words)]
 
+
+def create_wordcloud(topic_data):
+    coordinates = generate_coordinates(len(topic_data))
+    fig = go.Figure()
+    
+    for (word, prob), (x, y) in zip(topic_data, coordinates):
+        fig.add_trace(
+            go.Scatter(
+                x=[x],
+                y=[y],
+                text=[f"{word}"],
+                mode="text",
+                textfont=dict(size=prob * 2000),
+                hoverinfo="text",
+            )
+        )
+    
+    fig.update_layout(
+        xaxis=dict(showgrid=False, zeroline=False, visible=False),
+        yaxis=dict(showgrid=False, zeroline=False, visible=False),
+        plot_bgcolor="white",
+        showlegend=False,
+    )
+    return fig
+
+def topic_word_clouds(topics):
+    for idx, topic in enumerate(topics, start=1):
+        st.subheader(f"Word Cloud for Topic {idx}")
+
+        word_freq = dict(topic)
+
+        wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(word_freq)
+
+        buffer = BytesIO()
+        wordcloud.to_image().save(buffer, format="PNG")
+        buffer.seek(0)
+
+        st.image(buffer, caption=f"Word Cloud for Topic {idx}", use_column_width=True)

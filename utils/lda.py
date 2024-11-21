@@ -58,10 +58,75 @@ def build_lda_model(dataframe, num_topics, num_passes):
 
     return lda_model, corpus, dictionary
 
+def get_topic_probabilities(lda_model, corpus):
+    topic_probabilities = []
+    num_topics = lda_model.num_topics
+    for doc in corpus:
+        topic_distribution = lda_model.get_document_topics(doc, minimum_probability=0.0)
+        
+        probs = [0.0] * num_topics
+        for topic_id, prob in topic_distribution:
+            probs[topic_id] = prob
+
+        topic_probabilities.append(probs)
+
+    return topic_probabilities
+
+
 def display_pyLDAvis(lda_model, corpus, dictionary):
     lda_vis = gensimvis.prepare(lda_model, corpus, dictionary)
     html_string = pyLDAvis.prepared_data_to_html(lda_vis)
     st.components.v1.html(html_string, width=1200, height=800)
+    
+    return lda_vis.topic_order
+    
+def documents_in_topic(df):
+    
+    if 'selected_topic_id' not in st.session_state:
+        st.session_state['selected_topic_id'] = 0
+        
+    if 'topic_probs' not in st.session_state:
+        topic_probs = get_topic_probabilities(st.session_state.lda_model, 
+                                              st.session_state.corpus)
+
+        if len(topic_probs) == len(df):
+            df['topic_probs'] = topic_probs
+        else:
+            st.error("The length of topic probabilities does not match the number of documents in the DataFrame.")
+
+    
+    st.write("### Select a Topic to Filter Articles")
+    selected_topic = st.selectbox("Choose a topic", 
+                                  [f"Topic {i+1}" for i in range(st.session_state.lda_model.num_topics)])
+
+    st.session_state['selected_topic_id'] = int(selected_topic.split()[-1]) - 1
+
+    threshold = st.slider("Set the topic probability threshold", 0.0, 1.0, 0.5)
+    filtered_df = df[df['topic_probs'].apply(lambda probs: probs[st.session_state.selected_topic_id] >= threshold)]
+    
+    st.write("### Articles Matching the Selected Topic")
+    
+    total_results = len(filtered_df)
+    st.write(f"Documents in topic: {total_results}")
+    
+    if not filtered_df.empty:
+        for index, row in filtered_df.iterrows():
+            with st.container():
+                link_html = f"<a href='{row['link']}' target='_blank' class='custom-link'>{row['title']}</a>"
+                st.markdown(link_html, unsafe_allow_html=True)
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write(f"**Published on:** {row['date_published']}")
+                    st.write(f"**References Count:** {row['references_count']}")
+
+                with col2:
+                    st.write(f"**Publisher:** {row['source_publisher']}")
+                    st.write(row['source_title'])
+
+                st.markdown("---")
+    else:
+        st.write("No articles found for the selected topic and threshold.")
 
 def dataset_statistics(documents):
     with st.spinner('Prosessoidaan dokumentteja...'):

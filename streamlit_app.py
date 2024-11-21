@@ -21,6 +21,8 @@ with tab1:
         st.session_state.current_page = 1
     if 'results_per_page' not in st.session_state:
         st.session_state.results_per_page = 20
+        
+    modify_prompt()
     
     st.subheader("Boolean-kyselyiden aputyökalu")  
     help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
@@ -28,7 +30,7 @@ with tab1:
 
     if llm_button:
             if help_query:  
-                response = get_LLM_response(help_query, query_task_description, system_prompt1)  
+                response = get_LLM_response(help_query, st.session_state['prompt_user'], st.session_state['prompt_sys'])  
                 if response:
                     st.write(response)
                 else:
@@ -279,28 +281,61 @@ with tab5:
                 st.session_state.corpus = corpus
                 st.session_state.dictionary = dictionary
                 
-                topics = lda_model.print_topics(num_words=50)
-                formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
-                st.session_state['formatted_topics'] = formatted_topics
+                #topics = lda_model.print_topics(num_words=50)
+                #formatted_topics = "\n\n".join([f"Topic {i+1}: {topic[1]}" for i, topic in enumerate(topics)])
+                #st.session_state['formatted_topics'] = formatted_topics
                 st.write("Model built with", num_topics, "topics and", num_passes, "passes!")
 
                 
             if 'lda_model' in st.session_state and 'corpus' in st.session_state and 'dictionary' in st.session_state:
                 st.subheader("pyLDAvis Visualization")
-                display_pyLDAvis(st.session_state['lda_model'], st.session_state['corpus'], st.session_state['dictionary'])
+                topic_order = display_pyLDAvis(st.session_state['lda_model'], st.session_state['corpus'], st.session_state['dictionary'])
+                topic_order = [i - 1 for i in topic_order]
+                
+                topics = st.session_state['lda_model'].show_topics(num_topics=-1, num_words=50, formatted = False)
+                st.session_state["reordered_topics"] = [topics[i][1] for i in topic_order]
                
 
-            if 'formatted_topics' in st.session_state:
+            if 'reordered_topics' in st.session_state:
+                TOP_WORDS = 10
                 st.subheader("LDA Model Topics")
-                st.text(st.session_state.formatted_topics)
+                for idx, topic in enumerate(st.session_state.reordered_topics, start=1):
+                    st.subheader(f"Topic {idx}")
+                    #st.write(", ".join([f"{word} ({round(float(prob), 3)})" for word, prob in topic]))
+                    #top_words = ", ".join([f"{word} ({round(float(prob), 3)})" for word, prob in topic[:TOP_WORDS]])
+                    #st.write(f"Top {TOP_WORDS} words: {top_words}")
+   
+                    with st.expander(f"Show top {len(topic)} words for Topic {idx}"):
+                       all_words = ", ".join([f"{word} ({round(float(prob), 3)})" for word, prob in topic])
+                       st.write(all_words)
+                #st.text(st.session_state.formatted_topics)
                 
+                if 'analyze_topics_clicked' not in st.session_state:
+                    st.session_state['analyze_topics_clicked'] = False
+                
+                if st.button('Analyze topics'):
+                    st.session_state['analyze_topics_clicked'] = True
 
-                if 'formatted_topics' in st.session_state and st.button('Analyze topics'):
-                    response = get_LLM_response(st.session_state['formatted_topics'], LDA_task_description, system_prompt1)
-                    if response:
-                        st.write(response)
-                    else:
-                        st.error("Error: No response from LLM.")
+                if 'reordered_topics' in st.session_state and st.session_state['analyze_topics_clicked']:
+                    col1, col2 = st.columns([1, 2])
+
+
+                    with col1: 
+                        if 'llm_response' not in st.session_state:
+                            st.session_state['llm_response'] = None
+                            
+                        if st.session_state['llm_response'] is None:
+                            response = get_LLM_response(st.session_state['reordered_topics'], LDA_task_description, system_prompt1)
+                            if response:
+                                st.session_state['llm_response'] = response
+                            else:
+                                st.error("Error: No response from LLM.")
+                        
+                        if st.session_state['llm_response']:
+                            st.write(st.session_state['llm_response'])
+                            
+                    with col2: 
+                        documents_in_topic(df)
 
     else:
         st.write('Tee ensin haku luodaksesi aihemallin')
