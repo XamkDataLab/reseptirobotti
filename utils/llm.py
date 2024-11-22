@@ -24,11 +24,71 @@ def get_LLM_response(user_text, task_description, system_prompt):
         st.error(f"An error occurred: {e}")
         return "Error"
 
-system_prompt1= "you are a helpful assistant specializing in scientific publications"
-query_task_description = """The following is a description of what user wants to find in a big database that contains either scientific publications or patent data. The database supports boolean queries. Some of these words should be included in the query: materials, composition, recipe, properties. Formulate the following description into a comprehensive, nuanced and valid boolean query. Provide the suggested query as one line query string formatted as code:\n {}"""
+
+system_prompt1= "You are a highly skilled assistant specializing in scientific information retrieval. Your task is to help users craft precise and comprehensive Boolean queries for searching large databases containing scientific publications or patent data. Always ensure the queries are nuanced, valid, and formatted correctly for database compatibility."
+system_prompt2= "You are a highly skilled assistant specializing in scientific information retrieval and text analytics. Your task is to help user to understand topics in large database containing scientific articles and patents."
+query_task_description = """The following is a description of what the user wants to find in a large database containing scientific publications or patent data. The database supports Boolean queries with operators like AND, OR, and NOT. 
+
+Your task is to:
+1. Convert the description into a precise, comprehensive, and valid Boolean query.
+2. Use logical operators (AND, OR, NOT) appropriately to structure the query.
+3. Incorporate synonyms or related terms where relevant to improve coverage.
+4. Format the query as a single-line string, enclosed in code formatting.
+
+Here is the user's description:
+{}
+"""
+
 LDA_task_description = "The following is a printout of LDA topic model topics made with gensim library. Top 20 keywords and their probabilities per topic are listed. Go through each topic and then provide a fitting name for each topic and textual description for each topic: \n {}"
 LDA_analysis_task = "The following is a printout of LDA topic model topics made with gensim library. Top 20 keywords and their probabilities per topic are listed. Go through the probabilities of words and see if there seems to be too few or too many topics. Give your own analysis of this: \n {}"
 
+def update_prompt_sys_from_text_area():
+    st.session_state['prompt_sys'] = st.session_state['prompt_sys_text_area']
+    
+def update_prompt_user_from_text_area():
+    st.session_state['prompt_user'] = st.session_state['prompt_user_text_area']
+
+def modify_prompt():
+    if 'prompt_sys' not in st.session_state:
+        st.session_state['prompt_sys'] = system_prompt1
+    if 'prompt_user' not in st.session_state:
+        st.session_state['prompt_user'] = query_task_description
+        
+    with st.expander("Ohjeita promptin muuttamiseen"):
+        st.write("""
+                 - Voit alta vapaasti muuttaa oletus-prompteja. 
+                 - Kun olet muuttanut promptia, muista painaa **Ctrl + Enter**, jotta muutos tallentuu.
+                 - Jos haluat palata oletus-promptiin, klikkaa tekstiboxin alla olevaa nappulaa.
+                 - **Muutetut promptit eivät talletu mihinkään lopullisesti**, eli muista tallettaa hyväksi toteamasi promptit itsellesi.
+                 - Tekstiboxin alta löytyy mallille annettava prompti tarkastukseksi, että koodi toimii oikein.
+                 - Voit lukea lisää systeemin ja käyttäjän prompteista esim. [täältä](https://www.nebuly.com/blog/llm-system-prompt-vs-user-prompt).
+                 - Käyttäjän promptista ei kannata poistaa **Here is the user's description: {}**, jotta malli saa ohjeet oikein.
+                 """)
+     
+    with st.expander("Muuta prompteja"):
+        st.subheader("Muuta systeemin promptia:")
+        st.text_area("Prompt system", value = st.session_state['prompt_sys'], 
+                     key = "prompt_sys_text_area",
+                     on_change = update_prompt_sys_from_text_area)
+    
+        if st.button("Käytä alkuperäistä  systeemin promptia"):
+            st.session_state['prompt_sys'] = system_prompt1
+            st.rerun()
+        
+        st.write(st.session_state['prompt_sys'])
+        
+        st.subheader("Muuta käyttäjän promptia:")
+        st.text_area("Prompt user", value = st.session_state['prompt_user'], 
+                     height=270,
+                     key = "prompt_user_text_area",
+                     on_change = update_prompt_user_from_text_area)
+        
+        if st.button("Käytä alkuperäistä käyttäjä promptia"):
+            st.session_state['prompt_user'] = system_prompt1
+            st.rerun()
+        
+        st.write(st.session_state['prompt_user'])
+    
 
 def filter_dataframe(df, fs, selected_fields):
     if selected_fields:
