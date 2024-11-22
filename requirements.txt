@@ -4,3 +4,4 @@ plotly
 gensim
 nltk
 openpyxl
+pyLDAvis

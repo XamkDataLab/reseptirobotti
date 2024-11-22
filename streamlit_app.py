@@ -28,10 +28,15 @@ with tab1:
     help_query = st.text_area("Kirjoita tähän mitä olet etsimässä ja kielimalli leipoo siitä boolean-kyselyn (toivottavasti)")
     llm_button = st.button("Auta!")
 
+
+    if 'query' not in st.session_state:
+        st.session_state.query = ""
+
     if llm_button:
             if help_query:  
                 response = get_LLM_response(help_query, st.session_state['prompt_user'], st.session_state['prompt_sys'])  
                 if response:
+                    st.session_state.query = response
                     st.write(response)
                 else:
                     st.error("Error: No response from LLM.")
@@ -50,11 +55,11 @@ with tab1:
             min_date = datetime.date(1970, 1, 1)
             start_dateinput = st.date_input("Aloituspäivä (YYYY-MM-DD)", datetime.date(2024, 1, 1), format="YYYY-MM-DD", min_value = min_date)
             start_date = start_dateinput.strftime("%Y-%m-%d")  
-            end_dateinput = st.date_input("Lopetuspäivä (YYYY-MM-DD)", datetime.date(2024, 10, 1),format="YYYY-MM-DD") 
+            end_dateinput = st.date_input("Lopetuspäivä (YYYY-MM-DD)", datetime.date(2024, 10, 1),format="YYYY-MM-DD", min_value = min_date) 
             end_date = end_dateinput.strftime("%Y-%m-%d")
       
         with col2:
-            query = st.text_area("Kirjoita kysely")
+            query = st.text_area("Kirjoita kysely", value = st.session_state.query)
         
         with col3:
             class_cpc_prefix = None 
