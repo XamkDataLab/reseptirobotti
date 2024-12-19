@@ -7,11 +7,19 @@ import utils.visualizations as vis
 import re
 import plotly.graph_objs as go
 import datetime
+from dotenv import load_dotenv
+from utils.db_connection import connect_to_db
+from utils.db_operations import insert_pubmetadata
 
 
 st.set_page_config(layout="wide")
 st.title('🤖 👨‍🍳 ')
+st.image("./Logos/EU1.jpg", width=250)
+st.image("./Logos/XAMK2.jpg", width=100)
+
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja", "LDA"])
+
+
 
 initialize_session_state()
 
@@ -79,7 +87,8 @@ with tab1:
                 st.session_state.df = publication_table(results)
                 st.session_state.fs = fields_of_study_table(results)
                 st.session_state.authors = author_table(results)
-                st.session_state['data_loaded'] = True   
+                st.session_state['data_loaded'] = True 
+                insert_pubmetadata(results['data'])  
 
             elif search_type == 'Patentit':
                 other_filters = {}
@@ -139,7 +148,7 @@ with tab1:
         )
                     
 
-    st.caption("Versio 0.22")
+    st.caption("Versio 0.24")
     
     
 with tab2:

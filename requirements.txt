@@ -5,3 +5,7 @@ gensim
 nltk
 openpyxl
 pyLDAvis
+wordcloud
+python-dotenv
+psycopg2-binary
+

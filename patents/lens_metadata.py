@@ -111,8 +111,10 @@ def get_patent_data_with_query(start_date, end_date, query_string, token, class_
     if total_patents > 0:
         placeholder.text("Patents fetched successfully!")
         progress_bar.progress(1.0)
+        
 
     return patents
+        
 
 
 
