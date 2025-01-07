@@ -10,7 +10,16 @@ import datetime
 
 
 st.set_page_config(layout="wide")
-st.title('🤖 👨‍🍳 ')
+
+col1, col2, col3 = st.columns([2, 2, 1])
+
+with col1:
+    st.title('🤖 👨‍🍳 ')
+
+with col3:
+    st.image("./Logos/EU1.jpg", width=250)
+    st.image("./Logos/XAMK2.jpg", width=100)
+    
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja", "LDA"])
 
 initialize_session_state()
