@@ -65,7 +65,7 @@ with tab1:
             min_date = datetime.date(1970, 1, 1)
             start_dateinput = st.date_input("Aloituspäivä (YYYY-MM-DD)", datetime.date(2024, 1, 1), format="YYYY-MM-DD", min_value = min_date)
             start_date = start_dateinput.strftime("%Y-%m-%d")  
-            end_dateinput = st.date_input("Lopetuspäivä (YYYY-MM-DD)", datetime.date(2024, 10, 1),format="YYYY-MM-DD", min_value = min_date) 
+            end_dateinput = st.date_input("Lopetuspäivä (YYYY-MM-DD)", datetime.date.today(),format="YYYY-MM-DD", min_value = min_date) 
             end_date = end_dateinput.strftime("%Y-%m-%d")
       
         with col2:
