@@ -7,6 +7,7 @@ import utils.visualizations as vis
 import re
 import plotly.graph_objs as go
 import datetime
+import streamlit.components.v1 as components
 
 
 st.set_page_config(layout="wide")
@@ -17,11 +18,11 @@ initialize_session_state()
 
 with tab1:
 
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 1
+    if 'results_current_page' not in st.session_state:
+        st.session_state.results_current_page = 1
     if 'results_per_page' not in st.session_state:
-        st.session_state.results_per_page = 20
-        
+        st.session_state.results_per_page = 10
+    
     modify_prompt()
     
     st.subheader("Boolean-kyselyiden aputyökalu")  
@@ -228,6 +229,13 @@ with tab4:
         """)
 
 with tab5:
+    
+    if 'topic_current_page' not in st.session_state:
+        st.session_state.topic_current_page = 1
+    if 'topic_results_per_page' not in st.session_state:
+        st.session_state.topic_results_per_page = 10
+
+    
     st.title('LDA Aihemallinnin')
     if st.session_state.df is not None:
         
@@ -238,7 +246,7 @@ with tab5:
     
         df = st.session_state['df']
 
-         # Ensure 'title' and 'abstract' columns exist in the dataframe before accessing them
+        # Ensure 'title' and 'abstract' columns exist in the dataframe before accessing them
         if 'title' in df.columns and 'abstract' in df.columns:
 
 
@@ -289,15 +297,17 @@ with tab5:
                 
             if 'lda_model' in st.session_state and 'corpus' in st.session_state and 'dictionary' in st.session_state:
                 st.subheader("pyLDAvis Visualization")
-                topic_order = display_pyLDAvis(st.session_state['lda_model'], st.session_state['corpus'], st.session_state['dictionary'])
-                topic_order = [i - 1 for i in topic_order]
+                if 'topic_order' not in st.session_state or "lda_vis_html" not in st.session_state:
+                    topic_order = display_pyLDAvis(st.session_state['lda_model'], st.session_state['corpus'], st.session_state['dictionary'])
+                    st.session_state["topic_order"] = [i - 1 for i in topic_order]
                 
-                topics = st.session_state['lda_model'].show_topics(num_topics=-1, num_words=50, formatted = False)
-                st.session_state["reordered_topics"] = [topics[i][1] for i in topic_order]
+                    topics = st.session_state['lda_model'].show_topics(num_topics=-1, num_words=50, formatted = False)
+                    st.session_state["reordered_topics"] = [topics[i][1] for i in st.session_state['topic_order']]
                
+                components.html(st.session_state["lda_vis_html"], width=1200, height=800)
 
             if 'reordered_topics' in st.session_state:
-                TOP_WORDS = 10
+                #TOP_WORDS = 10
                 st.subheader("LDA Model Topics")
                 for idx, topic in enumerate(st.session_state.reordered_topics, start=1):
                     st.subheader(f"Topic {idx}")

@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 from io import BytesIO
+from utils.lda import *
 
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
@@ -112,101 +113,155 @@ a.custom-link {
 </style>
 """
 
-def get_page_results(page_index, results_per_page ,df):
+def get_page_results(page_index, results_per_page, df):
     start_index = page_index * results_per_page
     end_index = start_index + results_per_page
+    
     return df.iloc[start_index:end_index]
+##
+def get_paginated_data(df, current_page, results_per_page):
+    return get_page_results(current_page, results_per_page, df)
 
-def update_page():
-    st.session_state.current_page = st.session_state.page_dropdown
+
+def update_page(current_page_key):
+    st.session_state[current_page_key] = st.session_state[f"{current_page_key}_dropdown"]    
+
+def update_results_per_page(results_per_page_key, current_page_key):
+    st.session_state[current_page_key] = 1  # Reset to first page
+    st.session_state[results_per_page_key] = st.session_state[f"{results_per_page_key}_dropdown"]
+     
+        
+def display_paginated_results(df, 
+                              render_item_callback,
+                              current_page_key,
+                              results_per_page_key,
+                              layout_small = False):
     
-def update_results_per_page():
-    st.session_state.current_page = 1  # Reset to first page
-    st.session_state.results_per_page = st.session_state.results_dropdown
 
+        
+    total_results = len(df)
+    st.write(f"Total results: {total_results}")
+    
 
+    if total_results > 0:
+        total_pages = (total_results - 1) // st.session_state[results_per_page_key] + 1
+
+        col1, col2 = st.columns([2, 7])
+        with col1:
+            st.selectbox(
+                "Results per page",
+                options=[5, 10, 20, 50, 100],
+                index=1,  # Default to 10 results per page
+                key=f"{results_per_page_key}_dropdown",
+                on_change=lambda: update_results_per_page(results_per_page_key, current_page_key)
+            )
+        if layout_small == True:
+            col1, col2, col3, col4, spacer, col5 = st.columns([2, 1, 1, 1, 1, 1])
+        else:
+            col1, col2, col3, col4, spacer, col5 = st.columns([3, 1, 1, 1, 3, 1])
+        with col1:
+            if st.button("Previous", key=f"{current_page_key}_previous_button") and st.session_state[current_page_key] > 1:
+                st.session_state[current_page_key] -= 1
+
+                
+        with col2:
+            st.write("Page")
+
+        with col4:
+            st.write(f"of {total_pages}")
+
+        with col5:
+            if st.button("Next", key=f"{current_page_key}_next_button") and st.session_state[current_page_key] < total_pages:
+                st.session_state[current_page_key] += 1
+	
+        with col3:
+            st.session_state[current_page_key] = st.selectbox(
+                "",
+                options=list(range(1, total_pages + 1)),
+                index=st.session_state[current_page_key] - 1,
+                key=f"{current_page_key}_dropdown",
+                label_visibility="collapsed",
+                on_change=lambda: update_page(current_page_key)
+            )
+                     
+        current_page_df = get_paginated_data(df, st.session_state[current_page_key] - 1, 
+                                           st.session_state[results_per_page_key])
+
+        for _, row in current_page_df.iterrows():
+            render_item_callback(row)
+    else:
+        st.write("No results found.")
+        
+def render_publication_item(row):
+    with st.container():
+        link_html = f"<a href='{row['link']}' target='_blank' class='custom-link'>{row['title']}</a>"
+        st.markdown(link_html, unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.write(f"**Published on:** {row['date_published']}")
+            st.write(f"**References Count:** {row['references_count']}")
+
+        with col2:
+            st.write(f"**Publisher:** {row['source_publisher']}")
+            st.write(row['source_title'])
+
+        st.markdown("---")
+        
 def display_publication_results():
-    
     df = st.session_state['df']
     fs = st.session_state['fs']
-    authors = st.session_state['authors']
-    
-    # Check if 'field_of_study' column exists
-    if 'field_of_study' not in fs.columns:
-        return  # Exit the function if the column doesn't exist
-    
-    unique_fields_of_study = sorted(fs['field_of_study'].unique().tolist())
 
-    selected_fields_of_study = st.multiselect('Select Fields of Study', unique_fields_of_study, key='select_fs')
+    selected_fields_of_study = st.multiselect(
+        'Select Fields of Study',
+        sorted(fs['field_of_study'].unique().tolist()),
+        key='select_fs'
+    )
 
     if selected_fields_of_study:
         relevant_lens_ids = fs[fs['field_of_study'].isin(selected_fields_of_study)]['lens_id'].tolist()
         filtered_publications_df = df[df['lens_id'].isin(relevant_lens_ids)]
-        st.session_state.current_page = 1
-            
+        st.session_state["results_current_page"] = 1
     else:
         filtered_publications_df = df
-        
-    total_results = len(filtered_publications_df)
-    st.write(f"Total results: {total_results}")
+
+    display_paginated_results(
+        df=filtered_publications_df,
+        render_item_callback=render_publication_item,
+        current_page_key="results_current_page",
+        results_per_page_key="results_per_page"
+    )
     
+def documents_in_topic(df):
+    if 'selected_topic_id' not in st.session_state:
+        st.session_state['selected_topic_id'] = 0
 
-    if not filtered_publications_df.empty:
-        total_pages = (len(filtered_publications_df) - 1) // st.session_state.results_per_page +1
-        
-        col1, col2 = st.columns([1, 7])
-        
-        with col1:
-            st.selectbox(
-                "Results per page", options=[5, 10, 20, 50, 100], index=1,  # Default to 10 results per page
-                key="results_dropdown", on_change=update_results_per_page
-                )
-        
-        col1, col2, col3, col4, spacer, col5 = st.columns([3, 1, 1, 1, 3, 1])
-        with col1:
-            if st.button("Previous") and st.session_state.current_page > 1:
-                st.session_state.current_page -= 1
-            
-        with col2:
-            st.write("Page")
-            
-        with col3:
-            st.session_state.current_page = st.selectbox(
-                "", options=list(range(1, total_pages + 1)), index=st.session_state.current_page - 1, 
-                key="page_dropdown", label_visibility = "collapsed",
-                on_change = update_page
-            )
-            
-        with col4:
-            st.write(f"of {total_pages}")
-        
-        with col5: 
-            if st.button("Next") and st.session_state.current_page < total_pages:
-                st.session_state.current_page += 1
-            
-        current_page_df = get_page_results(st.session_state.current_page - 1, st.session_state.results_per_page, filtered_publications_df)
-        
-        
-        
-        for index, row in current_page_df.iterrows():
-            with st.container():
-                link_html = f"<a href='{row['link']}' target='_blank' class='custom-link'>{row['title']}</a>"
-                st.markdown(link_html, unsafe_allow_html=True)
-                col1, col2 = st.columns(2)
+    if 'topic_probs' not in st.session_state:
+        topic_probs = get_topic_probabilities(st.session_state.lda_model, 
+                                              st.session_state.corpus)
 
-                with col1:
-                    st.write(f"**Published on:** {row['date_published']}")
-                    st.write(f"**References Count:** {row['references_count']}")
+        if len(topic_probs) == len(df):
+            df['topic_probs'] = topic_probs
+        else:
+            st.error("The length of topic probabilities does not match the number of documents in the DataFrame.")
 
-                with col2:
-                    st.write(f"**Publisher:** {row['source_publisher']}")
-                    st.write(row['source_title'])
+    st.write("### Select a Topic to Filter Articles")
+    selected_topic = st.selectbox("Choose a topic", 
+                                  [f"Topic {i+1}" for i in range(st.session_state.lda_model.num_topics)])
 
-                st.markdown("---")
+    st.session_state['selected_topic_id'] = int(selected_topic.split()[-1]) - 1
+
+    threshold = st.slider("Set the topic probability threshold", 0.0, 1.0, 0.5)
+    filtered_df = df[df['topic_probs'].apply(lambda probs: probs[st.session_state.selected_topic_id] >= threshold)]
+
+    display_paginated_results(
+        df=filtered_df,
+        render_item_callback=render_publication_item,
+        current_page_key="topic_current_page",
+        results_per_page_key="topic_results_per_page",
+        layout_small=True
+    )
         
-     
-    else:
-        st.write("No publications found for the selected fields of study.")
 
 def display_patent_results():
     patents = st.session_state['patents']

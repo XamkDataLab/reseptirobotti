@@ -16,7 +16,7 @@ def get_publication_data_with_query(start_date, end_date, query_string, token):
                     {
                         "query_string": {
                             "query": query_string,
-                            "fields": ["title", "abstract", "full_text", "fields_of_study"],
+                            "fields": ["title", "abstract", "full_text", "keyword", "field_of_study"],
                             "default_operator": "and"
                         }
                     },
