@@ -12,13 +12,13 @@ import streamlit.components.v1 as components
 
 st.set_page_config(layout="wide")
 
-col1, col2, col3 = st.columns([4, 1, 1])
+col1, col2, col3 = st.columns([5, 1, 1])
 
 with col1:
     st.title('🤖 👨‍🍳 ')
 
-with col3:
-    st.image("./Logos/Logo_yhdistetty.png", width=250)
+with col2:
+    st.image("./Logos/Yhdistetty.png", width=350)
     
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja", "LDA"])
 
