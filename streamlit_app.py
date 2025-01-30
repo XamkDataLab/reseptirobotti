@@ -11,15 +11,13 @@ import datetime
 
 st.set_page_config(layout="wide")
 
-col1, col2, col3 = st.columns([5, 1, 1])
+col1, col2, col3 = st.columns([4, 1, 1])
 
 with col1:
     st.title('🤖 👨‍🍳 ')
 
-with col2:    
-    st.image("./Logos/EU1.jpg", width=250)
 with col3:
-    st.image("./Logos/XAMK2.jpg", width=100)
+    st.image("./Logos/Logo_yhdistetty.png", width=100)
     
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja", "LDA"])
 
