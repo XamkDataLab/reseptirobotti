@@ -22,15 +22,33 @@ def no_pub_by_date(df):
     date_count_df = df.groupby('year_month').size().reset_index(name = 'count')
     date_count_df['year_month'] = date_count_df['year_month'].dt.to_timestamp()
     
+    date_range = date_count_df["year_month"].max() - date_count_df["year_month"].min()
+    
+    if date_range.days <= 90:  # If data spans ≤3 months, show only one tick per month
+        tick_spacing = "M1"
+        tick_format = "%b %Y"
+    elif date_range.days <= 365 * 2:  # If data spans ≤2 years, show one tick every 3 months
+        tick_spacing = "M3"
+        tick_format = "%b %Y"
+    else:  # If data spans more than 2 years, show only the year
+        tick_spacing = "M6"
+        tick_format = "%Y"
+    
     fig = px.line(date_count_df, x='year_month', y='count', 
                   title='Julkaisujen määrä yli ajan')
     fig.update_layout(
-        xaxis_title = '',
-        yaxis_title = '',
+        xaxis_title='',
+        yaxis_title='',
+        xaxis=dict(
+            tickformat=tick_format,
+            dtick=tick_spacing
+        ),
+        yaxis=dict(range=[0, date_count_df['count'].max() + 1])
     )
     
-    fig.update_xaxes(type='date', tickformat='%Y-%m', dtick='M1')
-    fig.update_yaxes(range=[0, date_count_df['count'].max() + 1])
+    
+    #fig.update_xaxes(type='date', tickformat='%Y-%m', dtick = "M1")
+    #fig.update_yaxes(range=[0, date_count_df['count'].max() + 1])
     return fig
 
 # publishers top n barchart 

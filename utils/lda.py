@@ -10,6 +10,7 @@ import itertools
 import pyLDAvis
 import pyLDAvis.gensim_models as gensimvis
 import utils.visualizations as vis
+#import streamlit.components.v1 as components
 
 if 'nltk_downloaded' not in st.session_state:
     nltk.download('wordnet')
@@ -76,11 +77,12 @@ def get_topic_probabilities(lda_model, corpus):
 def display_pyLDAvis(lda_model, corpus, dictionary):
     lda_vis = gensimvis.prepare(lda_model, corpus, dictionary)
     html_string = pyLDAvis.prepared_data_to_html(lda_vis)
-    st.components.v1.html(html_string, width=1200, height=800)
+    
+    st.session_state["lda_vis_html"] = html_string
     
     return lda_vis.topic_order
     
-def documents_in_topic(df):
+def documents_in_topic1(df):
     
     if 'selected_topic_id' not in st.session_state:
         st.session_state['selected_topic_id'] = 0
