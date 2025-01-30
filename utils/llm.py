@@ -25,6 +25,7 @@ def get_LLM_response(user_text, task_description, system_prompt):
         st.error(f"An error occurred: {e}")
         return "Error"
 
+
 system_prompt1= "You are a highly skilled assistant specializing in scientific information retrieval. Your task is to help users craft precise and comprehensive Boolean queries for searching large databases containing scientific publications or patent data. Always ensure the queries are nuanced, valid, and formatted correctly for database compatibility."
 system_prompt2= "You are a highly skilled assistant specializing in scientific information retrieval and text analytics. Your task is to help user to understand topics in large database containing scientific articles and patents."
 query_task_description = """The following is a description of what the user wants to find in a large database containing scientific publications or patent data. The database supports Boolean queries with operators like AND, OR, and NOT. 
