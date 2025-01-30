@@ -17,7 +17,7 @@ with col1:
     st.title('🤖 👨‍🍳 ')
 
 with col3:
-    st.image("./Logos/Logo_yhdistetty.png", width=100)
+    st.image("./Logos/Logo_yhdistetty.png", width=250)
     
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Haku", "Ohjeita", "Tietoja", "Visualisointeja", "LDA"])
 
