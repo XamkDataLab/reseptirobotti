@@ -108,6 +108,9 @@ with tab1:
                     st.session_state.patents = patents
                     st.session_state.applicants = applicants
                     st.session_state.cpc_classes = cpc_classes
+                    st.dataframe(cpc_classes)
+                    st.dataframe(patents)
+                    st.dataframe(applicants)
            
                 else:
                     print("No patent results found for the given query.")
