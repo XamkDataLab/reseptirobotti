@@ -213,6 +213,22 @@ def display_publication_results():
     df = st.session_state['df']
     fs = st.session_state['fs']
 
+    # 1) Check if `fs` is not None AND has the `field_of_study` column
+    if fs is None or 'field_of_study' not in fs.columns:
+        st.warning("No 'field_of_study' data available to filter.")
+        # You might want to display all publications instead or gracefully exit:
+        if df is not None:
+            st.write("Displaying all publications (no field_of_study filter applied).")
+            display_paginated_results(
+                df=df,
+                render_item_callback=render_publication_item,
+                current_page_key="results_current_page",
+                results_per_page_key="results_per_page"
+            )
+        else:
+            st.write("No data available.")
+        return  # Stop here to avoid KeyError
+
     selected_fields_of_study = st.multiselect(
         'Select Fields of Study',
         sorted(fs['field_of_study'].unique().tolist()),
